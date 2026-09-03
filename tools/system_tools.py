@@ -1,7 +1,13 @@
+from ctypes import POINTER, cast
+from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+from comtypes import CLSCTX_ALL, CoCreateInstance
 from datetime import datetime
 import subprocess
 import psutil
 import shutil
+
+
+
 
 def get_time():
 
@@ -106,3 +112,94 @@ def get_internet_status():
     except OSError:
 
         return "Your internet connection is not available."
+
+
+from ctypes import POINTER, cast
+
+from comtypes import CLSCTX_ALL
+from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+
+
+def get_volume_interface():
+    devices = AudioUtilities.GetSpeakers()
+
+    interface = devices._dev.Activate(
+        IAudioEndpointVolume._iid_,
+        CLSCTX_ALL,
+        None
+    )
+
+    return cast(
+        interface,
+        POINTER(IAudioEndpointVolume)
+    )
+
+
+def get_volume():
+    volume = get_volume_interface()
+
+    current_volume = volume.GetMasterVolumeLevelScalar()
+
+    percentage = round(current_volume * 100)
+
+    return f"Current volume is {percentage} percent."
+
+
+def set_volume(level):
+    try:
+        level = int(level)
+        level = max(0, min(level, 100))
+
+        volume = get_volume_interface()
+
+        volume.SetMasterVolumeLevelScalar(
+            level / 100,
+            None
+        )
+
+        return f"Volume set to {level} percent."
+
+    except ValueError:
+        return "Please provide a valid volume percentage."
+
+
+def increase_volume():
+    volume = get_volume_interface()
+
+    current_volume = volume.GetMasterVolumeLevelScalar()
+    new_volume = min(current_volume + 0.10, 1.0)
+
+    volume.SetMasterVolumeLevelScalar(
+        new_volume,
+        None
+    )
+
+    return f"Volume increased to {round(new_volume * 100)} percent."
+
+
+def decrease_volume():
+    volume = get_volume_interface()
+
+    current_volume = volume.GetMasterVolumeLevelScalar()
+    new_volume = max(current_volume - 0.10, 0.0)
+
+    volume.SetMasterVolumeLevelScalar(
+        new_volume,
+        None
+    )
+
+    return f"Volume decreased to {round(new_volume * 100)} percent."
+
+
+def mute_volume():
+    volume = get_volume_interface()
+    volume.SetMute(1, None)
+
+    return "Volume muted."
+
+
+def unmute_volume():
+    volume = get_volume_interface()
+    volume.SetMute(0, None)
+
+    return "Volume unmuted."

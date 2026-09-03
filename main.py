@@ -1,12 +1,14 @@
+from config import INPUT_MODE
+
 from core.listener import Listener
 from core.speaker import Speaker
-from core.brain import JarvisBrain
+from core.brain import Brain
 from core.intent import IntentManager
 
 
 listener = Listener()
 speaker = Speaker()
-brain = JarvisBrain()
+brain = Brain()
 intent_manager = IntentManager()
 
 
@@ -17,21 +19,21 @@ def process_command(user_text):
 
     command = user_text.lower().strip()
 
-    # Exit JARVIS completely
+    # Completely close JARVIS
     if listener.is_exit_command(command):
 
         speaker.speak("Goodbye Tarek.")
 
         return False
 
-    # Stop current listening session
+    # Stop listening / sleep mode
     if listener.is_stop_command(command):
 
         speaker.speak("Okay Tarek. I am going to sleep.")
 
         return True
 
-    # Execute local command
+    # Local command execution
     command_result = intent_manager.execute(user_text)
 
     if command_result:
@@ -40,7 +42,7 @@ def process_command(user_text):
 
         return True
 
-    # Ask Gemini
+    # AI response
     answer = brain.ask(user_text)
 
     speaker.speak(answer)
@@ -50,11 +52,14 @@ def process_command(user_text):
 
 def run_text_mode():
 
+    speaker.speak("Hello Tarek. JARVIS is online.")
+
     while True:
 
         user_text = listener.listen()
 
         if not process_command(user_text):
+
             break
 
 
@@ -66,7 +71,60 @@ def run_voice_mode():
 
     while True:
 
-        if conversation_mode:
+        # --------------------------------------------------
+        # Wake-word mode
+        # --------------------------------------------------
+        if not conversation_mode:
+
+            print("\n💤 Waiting for wake word...")
+
+            user_text = listener.listen()
+
+            if not user_text:
+                continue
+
+            command = user_text.lower().strip()
+
+            # Exit without wake word
+            if listener.is_exit_command(command):
+
+                speaker.speak("Goodbye Tarek.")
+
+                break
+
+            # Ignore stop command while sleeping
+            if listener.is_stop_command(command):
+
+                continue
+
+            # Ignore normal speech without wake word
+            if not listener.contains_wake_word(command):
+
+                print("💤 Wake word not detected.")
+
+                continue
+
+            # Remove "Hey Jarvis"
+            command = listener.remove_wake_word(command)
+
+            # Example: Hey Jarvis, open YouTube
+            if command:
+
+                if not process_command(command):
+
+                    break
+
+            # Example: Hey Jarvis
+            else:
+
+                speaker.speak("Yes Tarek?")
+
+            conversation_mode = True
+
+        # --------------------------------------------------
+        # Continuous conversation mode
+        # --------------------------------------------------
+        else:
 
             print("\n🟢 Conversation mode active.")
             print("💤 Say 'stop listening' to sleep.")
@@ -78,14 +136,14 @@ def run_voice_mode():
 
             command = user_text.lower().strip()
 
-            # Exit JARVIS completely
+            # Exit completely
             if listener.is_exit_command(command):
 
                 speaker.speak("Goodbye Tarek.")
 
                 break
 
-            # Stop conversation mode
+            # Return to wake-word mode
             if listener.is_stop_command(command):
 
                 speaker.speak("Okay Tarek. I am going to sleep.")
@@ -94,66 +152,16 @@ def run_voice_mode():
 
                 continue
 
-            # Execute command or ask AI
+            # Execute command or ask Gemini
             process_command(user_text)
 
-            continue
-
-        # Wake-word waiting mode
-        print("\n💤 Waiting for wake word...")
-
-        wake_text = listener.listen()
-
-        if not wake_text:
-            continue
-
-        wake_text = wake_text.lower().strip()
-
-        # Exit without wake word
-        if listener.is_exit_command(wake_text):
-
-            speaker.speak("Goodbye Tarek.")
-
-            break
-
-        # Ignore stop command when already sleeping
-        if listener.is_stop_command(wake_text):
-
-            continue
-
-        # Wake word not detected
-        if not listener.contains_wake_word(wake_text):
-
-            print("💤 Wake word not detected.")
-
-            continue
-
-        # Remove wake word
-        command = listener.remove_wake_word(wake_text)
-
-        # Example: Hey Jarvis, open YouTube
-        if command:
-
-            if not process_command(command):
-                break
-
-        else:
-
-            speaker.speak("Yes Tarek?")
-
-        # Activate continuous conversation
-        conversation_mode = True
 
 if __name__ == "__main__":
 
-    if listener.__class__.__module__:
+    if INPUT_MODE.lower() == "text":
 
-        from config import INPUT_MODE
+        run_text_mode()
 
-        if INPUT_MODE.lower() == "text":
+    else:
 
-            run_text_mode()
-
-        else:
-
-            run_voice_mode()
+        run_voice_mode()

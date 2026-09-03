@@ -13,6 +13,12 @@ from tools.system_tools import (
     get_ram_usage,
     get_disk_space,
     get_internet_status,
+    get_volume,
+    set_volume,
+    increase_volume,
+    decrease_volume,
+    mute_volume,
+    unmute_volume,
 )
 
 from tools.browser_tools import (
@@ -847,7 +853,7 @@ class IntentManager:
         )):
             return None
 
-        return self.memory.remember_sentence(text)
+        return self.memory.process(text)
 
     def delete_intent(self, text):
 
@@ -1185,6 +1191,7 @@ class IntentManager:
         if not command:
             return None
 
+       
         if self.confirmation.has_pending():
 
             if command in [
@@ -1206,6 +1213,12 @@ class IntentManager:
                 "বাতিল",
             ]:
                 return self.confirmation.cancel()
+
+        memory_result = self.memory.process(command)
+        
+        if memory_result:
+            return memory_result
+        
 
         # Smart help
         result = self.smart_help_intent(command)
@@ -1313,6 +1326,66 @@ class IntentManager:
             return result
 
 
+
+        # Volume control
+        if command in [
+            "what is the volume",
+            "check volume",
+            "get volume",
+            "volume status",
+            "আমার ভলিউম কত"
+        ]:
+            return get_volume()
+
+        if command in [
+            "increase volume",
+            "volume up",
+            "turn up volume",
+            "ভলিউম বাড়াও"
+        ]:
+            return increase_volume()
+
+        if command in [
+            "decrease volume",
+            "volume down",
+            "turn down volume",
+            "ভলিউম কমাও"
+        ]:
+            return decrease_volume()
+
+        if command in [
+            "mute volume",
+            "mute",
+            "ভলিউম বন্ধ করো"
+        ]:
+            return mute_volume()
+
+        if command in [
+            "unmute volume",
+            "unmute",
+            "ভলিউম চালু করো"
+        ]:
+            return unmute_volume()
+
+        if command.startswith("set volume "):
+            level = command.replace(
+                "set volume ",
+                "",
+                1
+            ).replace("%", "").strip()
+
+            return set_volume(level)
+
+        if command.startswith("volume "):
+            level = command.replace(
+                "volume ",
+                "",
+                1
+            ).replace("%", "").strip()
+
+            if level.isdigit():
+                return set_volume(level)
+            
         # =========================
         # RECENT FILES
         # =========================
