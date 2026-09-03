@@ -1,0 +1,8 @@
+google-genai
+python-dotenv
+SpeechRecognition
+PyAudio
+edge-tts
+playsound==1.2.2
+sounddevice
+soundfile
