@@ -5,8 +5,10 @@ from datetime import datetime
 import subprocess
 import psutil
 import shutil
-
-
+import pyautogui
+import os
+import pyperclip
+import speedtest
 
 
 def get_time():
@@ -203,3 +205,121 @@ def unmute_volume():
     volume.SetMute(0, None)
 
     return "Volume unmuted."
+
+def capture_screenshot():
+    try:
+        screenshot_dir = os.path.join(
+            os.path.expanduser("~"),
+            "Pictures",
+            "JARVIS Screenshots"
+        )
+
+        os.makedirs(screenshot_dir, exist_ok=True)
+
+        filename = datetime.now().strftime(
+            "screenshot_%Y%m%d_%H%M%S.png"
+        )
+
+        screenshot_path = os.path.join(
+            screenshot_dir,
+            filename
+        )
+
+        pyautogui.screenshot(screenshot_path)
+
+        return (
+            f"Screenshot captured successfully. "
+            f"Saved as {filename}."
+        )
+
+    except Exception as e:
+        print(f"Screenshot error: {e}")
+
+        return "Sorry, I could not capture the screenshot."
+
+def read_clipboard():
+    try:
+        text = pyperclip.paste()
+
+        if not text:
+            return "Your clipboard is empty."
+
+        return f"Your clipboard contains: {text}"
+
+    except Exception as e:
+        print(f"Clipboard read error: {e}")
+        return "Sorry, I could not read the clipboard."
+
+
+def copy_to_clipboard(text):
+    try:
+        if not text.strip():
+            return "Please tell me what to copy."
+
+        pyperclip.copy(text)
+
+        return "Copied to clipboard successfully."
+
+    except Exception as e:
+        print(f"Clipboard copy error: {e}")
+        return "Sorry, I could not copy the text."
+
+
+def clear_clipboard():
+    try:
+        subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "Set-Clipboard -Value $null"
+            ],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+
+        return "Clipboard cleared successfully."
+
+    except Exception as e:
+        print(f"Clipboard clear error: {e}")
+        return "Sorry, I could not clear the clipboard."
+
+
+def internet_speed_test():
+    try:
+        print("🌐 Testing internet speed... Please wait.")
+
+        st = speedtest.Speedtest()
+
+        st.get_best_server()
+
+        download_speed = st.download()
+        upload_speed = st.upload()
+
+        ping = st.results.ping
+
+        download_mbps = round(
+            download_speed / 1_000_000,
+            2
+        )
+
+        upload_mbps = round(
+            upload_speed / 1_000_000,
+            2
+        )
+
+        return (
+            f"Internet speed test completed. "
+            f"Download: {download_mbps} Mbps, "
+            f"Upload: {upload_mbps} Mbps, "
+            f"Ping: {round(ping)} ms."
+        )
+
+    except Exception as e:
+        print(f"Internet speed test error: {e}")
+
+        return (
+            "Sorry, I could not complete the internet speed test. "
+            "Please check your internet connection."
+        )
