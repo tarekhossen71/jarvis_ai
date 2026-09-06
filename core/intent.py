@@ -87,8 +87,7 @@ class IntentManager:
         for word in words_to_remove:
 
             # text = text.replace(word, " ")
-            text = re.sub(r"[?!.,;:]+", "", text)
-
+            text = re.sub(r"[?!]+$", "", text)
         # Remove extra spaces
         text = re.sub(r"\s+", " ", text)
 
