@@ -1,3 +1,4 @@
+
 import re
 
 
@@ -8,10 +9,11 @@ class MultiStepIntents:
 
     def split_commands(self, command):
 
-        # Split:
+        # Examples:
         # open notepad and open calculator
         # open notepad then open calculator
         # open notepad and then open calculator
+        # open notepad and calculator
 
         parts = re.split(
             r"\s+(?:and then|then|and)\s+",
@@ -36,6 +38,48 @@ class MultiStepIntents:
         results = []
 
         for index, part in enumerate(parts, start=1):
+
+            # -----------------------------------------
+            # Handle app names without "open"
+            # -----------------------------------------
+            #
+            # Example:
+            # open notepad and calculator
+            #
+            # becomes:
+            # open notepad
+            # open calculator
+            #
+            if index > 1 and not re.match(
+                r"^(open|launch|start|close|exit|quit)\s+",
+                part,
+                re.IGNORECASE
+            ):
+
+                known_apps = [
+                    "notepad",
+                    "note pad",
+                    "calculator",
+                    "calc",
+                    "explorer",
+                    "file explorer",
+                    "command prompt",
+                    "cmd",
+                    "powershell",
+                    "power shell",
+                    "vscode",
+                    "vs code",
+                    "visual studio code",
+                    "chrome",
+                    "google chrome",
+                ]
+
+                if part.lower() in known_apps:
+                    part = f"open {part}"
+
+            # -----------------------------------------
+            # Execute Step
+            # -----------------------------------------
 
             result = self.intent_manager.execute_single(part)
 

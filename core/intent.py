@@ -14,6 +14,8 @@ import tools.communication_tools as communication_tools
 from intents.automation_intents import AutomationIntents
 from intents.app_intents import AppIntents
 from intents.multi_step_intents import MultiStepIntents
+from core.plugin_manager import PluginManager
+
 
 
 from core.reminder import ReminderManager
@@ -58,7 +60,7 @@ class IntentManager:
 
         self.multi_step_intents = MultiStepIntents(self)
 
-
+        self.plugin_manager = PluginManager()
     # =========================
     # Normalize Text
     # =========================
@@ -146,6 +148,19 @@ class IntentManager:
             ]:
                 return self.confirmation.cancel()
 
+
+        
+        # =========================
+        # Restart JARVIS
+        # =========================
+
+        if command in [
+            "reload jarvis",
+            "reload",
+        ]:
+
+            return "__RELOAD_JARVIS__"
+    
 
         # -------------------------
         # Memory
@@ -305,7 +320,201 @@ class IntentManager:
 
         if result:
             return result
+
+        # =========================
+        # Plugin Management
+        # =========================
+
+        # -------------------------
+        # Plugin List
+        # -------------------------
+
+        if command in [
+            "list plugins",
+            "show plugins",
+            "plugin list",
+        ]:
+
+            plugins = self.plugin_manager.get_plugin_details()
+
+            if not plugins:
+                return "No plugins are currently loaded."
+
+            result = "Loaded plugins:\n"
+
+            for index, plugin in enumerate(plugins, start=1):
+
+                status = (
+                    "Enabled"
+                    if plugin["enabled"]
+                    else "Disabled"
+                )
+
+                result += (
+                    f"{index}. {plugin['name']} "
+                    f"({status})\n"
+                )
+
+            return result
+
+
+        # -------------------------
+        # Disable Plugin
+        # -------------------------
+
+        if command.startswith("disable plugin "):
+
+            plugin_name = command.replace(
+                "disable plugin ",
+                "",
+                1
+            ).strip()
+
+            return self.plugin_manager.disable_plugin(
+                plugin_name
+            )
+
+
+        if command.startswith("disable ") and "plugin" in command:
+
+            plugin_name = command.replace(
+                "disable ",
+                "",
+                1
+            ).strip()
+
+            return self.plugin_manager.disable_plugin(
+                plugin_name
+            )
+
+
+        # -------------------------
+        # Enable Plugin
+        # -------------------------
+
+        if command.startswith("enable plugin "):
+
+            plugin_name = command.replace(
+                "enable plugin ",
+                "",
+                1
+            ).strip()
+
+            return self.plugin_manager.enable_plugin(
+                plugin_name
+            )
+
+
+        if command.startswith("enable ") and "plugin" in command:
+
+            plugin_name = command.replace(
+                "enable ",
+                "",
+                1
+            ).strip()
+
+            return self.plugin_manager.enable_plugin(
+                plugin_name
+            )
+
+
+        # -------------------------
+        # Reload Plugins
+        # -------------------------
+
+        if command in [
+            "reload plugins",
+            "reload plugin",
+            "refresh plugins",
+            "refresh plugin",
+        ]:
+
+            return self.plugin_manager.reload_plugins()
+
+
+        # -------------------------
+        # Reload Single Plugin
+        # -------------------------
+
+        if command.startswith("reload plugin "):
+
+            plugin_name = command.replace(
+                "reload plugin ",
+                "",
+                1
+            ).strip()
+
+            return self.plugin_manager.reload_plugin(
+                plugin_name
+            )
+
+
+        # -------------------------
+        # Create Plugin
+        # -------------------------
+
+        if command.startswith("create plugin "):
+
+            plugin_name = command.replace(
+                "create plugin ",
+                "",
+                1
+            ).strip()
+
+            return self.plugin_manager.create_plugin(
+                plugin_name
+            )
+
+
+        # -------------------------
+        # Uninstall Plugin
+        # -------------------------
+
+        if command.startswith("uninstall "):
+
+            plugin_name = command.replace(
+                "uninstall ",
+                "",
+                1
+            ).strip()
+
+            if not plugin_name:
+                return "Please provide a plugin name."
+
+            plugin = self.plugin_manager.find_plugin(
+                plugin_name
+            )
+
+            if not plugin:
+                return (
+                    f"Plugin '{plugin_name}' "
+                    f"was not found."
+                )
+
+            return self.confirmation.ask(
+                f"uninstall {plugin['name']}",
+                lambda: self.plugin_manager.delete_plugin(
+                    plugin["name"]
+                )
+            )
+
+
+        # =========================
+        # Execute Plugin
+        # =========================
+
+        # IMPORTANT:
+        # This must stay AFTER all plugin management
+        # commands such as uninstall, reload, create,
+        # enable and disable.
+
+        result = self.plugin_manager.execute(command)
+
+        if result:
+            return result
         
+
+    
 
         # =========================
         # File Intents
@@ -414,7 +623,5 @@ class IntentManager:
 
 
         return None
-
-    
 
     

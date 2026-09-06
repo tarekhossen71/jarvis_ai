@@ -21,6 +21,30 @@ class ConfirmationManager:
 
         return callback()
 
+    # def confirm(self):
+
+    #     if not self.pending_action:
+    #         return "There is no pending action."
+
+    #     print(
+    #         "DEBUG pending action:",
+    #         self.pending_action
+    #     )
+
+    #     callback = self.pending_action["callback"]
+
+    #     self.pending_action = None
+
+    #     result = callback()
+
+    #     print(
+    #         "DEBUG callback result:",
+    #         result
+    #     )
+
+    #     return result
+    
+
     def cancel(self):
         self.pending_action = None
 
