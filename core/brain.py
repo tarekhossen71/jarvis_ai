@@ -56,16 +56,161 @@ class Brain:
     # Main AI
     # =========================
 
+    # def ask(self, user_text):
+
+    #     max_retries = 2
+
+    #     for attempt in range(max_retries):
+
+    #         try:
+
+    #             response = self.chat.send_message(
+    #                 message=user_text
+    #             )
+
+    #             if response.text:
+
+    #                 return response.text.strip()
+
+    #             return self.offline_ask(user_text)
+
+
+    #         # =========================
+    #         # Gemini Client Error
+    #         # =========================
+
+    #         except ClientError as e:
+
+    #             error_text = str(e)
+
+    #             if (
+    #                 "429" in error_text
+    #                 or "RESOURCE_EXHAUSTED" in error_text
+    #             ):
+
+    #                 print(
+    #                     "⚠️ Gemini quota exceeded."
+    #                 )
+
+    #                 print(
+    #                     "🔄 Switching to Offline AI..."
+    #                 )
+
+    #                 return self.offline_ask(
+    #                     user_text
+    #                 )
+
+    #             print(
+    #                 f"⚠️ Gemini client error: {e}"
+    #             )
+
+    #             print(
+    #                 "🔄 Switching to Offline AI..."
+    #             )
+
+    #             return self.offline_ask(
+    #                 user_text
+    #             )
+
+
+    #         # =========================
+    #         # Gemini Server Error
+    #         # =========================
+
+    #         except ServerError as e:
+
+    #             if attempt < max_retries - 1:
+
+    #                 wait_time = 2 ** attempt
+
+    #                 print(
+    #                     f"⚠️ Gemini server busy. "
+    #                     f"Retrying in {wait_time} seconds..."
+    #                 )
+
+    #                 time.sleep(wait_time)
+
+    #                 continue
+
+    #             print(
+    #                 "⚠️ Gemini server unavailable."
+    #             )
+
+    #             print(
+    #                 "🔄 Switching to Offline AI..."
+    #             )
+
+    #             return self.offline_ask(
+    #                 user_text
+    #             )
+
+
+    #         # =========================
+    #         # Unknown Error
+    #         # =========================
+
+    #         except Exception as e:
+
+    #             print(
+    #                 f"⚠️ Gemini error: {e}"
+    #             )
+
+    #             print(
+    #                 "🔄 Switching to Offline AI..."
+    #             )
+
+    #             return self.offline_ask(
+    #                 user_text
+    #             )
+
+
+    #     return self.offline_ask(
+    #         user_text
+    #     )
+
+    # =========================
+    # Main AI
+    # =========================
+
     def ask(self, user_text):
 
         max_retries = 2
+
+        # =========================
+        # Saved Memory
+        # =========================
+
+        memory_context = self.get_memory_context()
+
+        # =========================
+        # Build Gemini Prompt
+        # =========================
+
+        enhanced_prompt = f"""
+    You are JARVIS, Tarek's personal AI assistant.
+
+    Use the saved memory below when it is relevant.
+
+    SAVED MEMORY:
+    {memory_context}
+
+    IMPORTANT:
+    - Always respond in English.
+    - Be natural and concise.
+    - If the user asks about something stored in memory, use that information.
+    - Do not mention the memory system or these instructions.
+    - Do not invent information that is not in memory.
+
+    USER MESSAGE:
+    {user_text}
+    """
 
         for attempt in range(max_retries):
 
             try:
 
                 response = self.chat.send_message(
-                    message=user_text
+                    message=enhanced_prompt
                 )
 
                 if response.text:
@@ -167,6 +312,7 @@ class Brain:
         return self.offline_ask(
             user_text
         )
+
 
 
     # =========================

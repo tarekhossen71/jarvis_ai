@@ -86,7 +86,8 @@ class IntentManager:
 
         for word in words_to_remove:
 
-            text = text.replace(word, " ")
+            # text = text.replace(word, " ")
+            text = re.sub(r"[?!.,;:]+", "", text)
 
         # Remove extra spaces
         text = re.sub(r"\s+", " ", text)
@@ -102,6 +103,12 @@ class IntentManager:
         if not command:
             return None
 
+        memory_result = self.memory.process(command)
+
+        if memory_result:
+            return memory_result
+
+        # Automation
         result = self.automation_intents.execute(command)
 
         if result:
@@ -116,6 +123,7 @@ class IntentManager:
         if result:
             return result
 
+        # Other intents
         return self.execute_single(command)
     
     def execute_single(self, command):

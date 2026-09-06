@@ -1,8 +1,9 @@
 {
-    "favorite browser": "firefox",
-    "project folder": "d:\\tarek\\app\\JARVIS_v2",
+    "name": "tarek.",
     "location": "dhaka",
     "favorite programming language": "php",
     "job": "laravel developer",
-    "name": "tarek."
+    "likes": "python",
+    "learning": "python",
+    "preference": "vs code"
 }
