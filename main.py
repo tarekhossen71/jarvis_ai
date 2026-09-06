@@ -49,13 +49,46 @@ def reload_jarvis():
 # =========================
 # Process Command
 # =========================
-
 def process_command(user_text):
 
     if not user_text:
         return True
 
     command = user_text.lower().strip()
+
+    # =========================
+    # Switch Input Mode
+    # =========================
+
+    voice_commands = [
+        "voice mode",
+        "switch to voice mode",
+        "change to voice mode",
+        "voice on",
+    ]
+
+    text_commands = [
+        "text mode",
+        "switch to text mode",
+        "change to text mode",
+        "text on",
+    ]
+
+    if command in voice_commands:
+
+        listener.set_mode("voice")
+
+        speaker.speak("Switching to voice mode.")
+
+        return "SWITCH_VOICE"
+
+    if command in text_commands:
+
+        listener.set_mode("text")
+
+        speaker.speak("Switching to text mode.")
+
+        return "SWITCH_TEXT"
 
     # Completely close JARVIS
     if listener.is_exit_command(command):
@@ -95,6 +128,7 @@ def process_command(user_text):
     return True
 
 
+
 # =========================
 # Text Mode
 # =========================
@@ -108,6 +142,9 @@ def run_text_mode():
         user_text = listener.listen()
 
         result = process_command(user_text)
+
+        if result == "SWITCH_VOICE":
+            return "VOICE"
 
         if result == "RELOAD":
 
@@ -168,6 +205,9 @@ def run_voice_mode():
             if command:
 
                 result = process_command(command)
+
+                if result == "SWITCH_TEXT":
+                    return "TEXT"
 
                 if result == "RELOAD":
 
@@ -255,11 +295,26 @@ threading.Thread(
 
 if __name__ == "__main__":
 
-    if INPUT_MODE.lower() == "text":
+    current_mode = listener.get_mode()
 
-        run_text_mode()
+    while True:
 
-    else:
+        if current_mode == "text":
 
-        run_voice_mode()
+            result = run_text_mode()
 
+        else:
+
+            result = run_voice_mode()
+
+        if result == "VOICE":
+
+            current_mode = "voice"
+            continue
+
+        if result == "TEXT":
+
+            current_mode = "text"
+            continue
+
+        break
