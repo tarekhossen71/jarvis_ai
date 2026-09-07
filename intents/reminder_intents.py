@@ -69,20 +69,23 @@ class ReminderIntents:
         ]):
             return None
 
-        reminders = self.reminder.get_reminders()
+        # ReminderManager already returns a formatted string 
+        return self.reminder.list_reminders()
+    
+        # reminders = self.reminder.get_reminders()
 
-        if not reminders:
-            return "You don't have any active reminders."
+        # if not reminders:
+        #     return "You don't have any active reminders."
 
-        response = "Your active reminders:\n"
+        # response = "Your active reminders:\n"
 
-        for index, reminder in enumerate(reminders, start=1):
-            response += (
-                f"{index}. {reminder['message']} "
-                f"({reminder['minutes']} minutes)\n"
-            )
+        # for index, reminder in enumerate(reminders, start=1):
+        #     response += (
+        #         f"{index}. {reminder['message']} "
+        #         f"({reminder['minutes']} minutes)\n"
+        #     )
 
-        return response.strip()
+        # return response.strip()
 
     def cancel_reminder(self, command):
         text = self.normalize(command)
@@ -95,3 +98,7 @@ class ReminderIntents:
             return None
 
         return self.reminder.cancel_last_reminder()
+
+    
+    
+    

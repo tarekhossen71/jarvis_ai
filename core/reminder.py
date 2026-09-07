@@ -133,6 +133,30 @@ class ReminderManager:
 
         return "Reminder cancelled successfully."
 
+    def cancel_last_reminder(self):
+        self.reminders = self._load()
+
+        pending = [
+            reminder
+            for reminder in self.reminders
+            if not reminder.get("completed", False)
+        ]
+
+        if not pending:
+            return "You have no pending reminders to cancel."
+
+        # Get the latest pending reminder
+        reminder = pending[-1]
+
+        reminder["completed"] = True
+
+        self._save(self.reminders)
+
+        return (
+            f"Reminder cancelled successfully: "
+            f"{reminder['text']}"
+        )
+
     def _check_reminders(self):
 
         while self.running:
