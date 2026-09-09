@@ -1,3 +1,6 @@
+import os
+import shutil
+import subprocess
 import webbrowser
 from urllib.parse import quote
 import requests
@@ -46,7 +49,7 @@ def search_google(query):
     return f"Searching Google for {query}."
 
 
-def search_youtube(query):
+def search_youtube(query, browser=None):
 
     query = query.strip()
 
@@ -57,6 +60,89 @@ def search_youtube(query):
         "https://www.youtube.com/results?search_query="
         + quote(query)
     )
+
+    # =========================================
+    # Chrome
+    # =========================================
+
+    if browser == "chrome":
+
+        chrome_paths = [
+            os.path.expandvars(
+                r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+            ),
+            os.path.expandvars(
+                r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+            ),
+            os.path.expandvars(
+                r"%LocalAppData%\Google\Chrome\Application\chrome.exe"
+            ),
+        ]
+
+        for path in chrome_paths:
+
+            if os.path.exists(path):
+
+                try:
+                    subprocess.Popen(
+                        [
+                            path,
+                            "--new-tab",
+                            url
+                        ],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+
+                    return f"Searching YouTube for {query}."
+
+                except Exception:
+                    return "I could not search YouTube in Chrome."
+
+        # IMPORTANT:
+        # Do NOT fallback to default browser
+        return "Google Chrome was not found."
+
+    # =========================================
+    # Firefox
+    # =========================================
+
+    if browser == "firefox":
+
+        firefox_paths = [
+            os.path.expandvars(
+                r"%ProgramFiles%\Mozilla Firefox\firefox.exe"
+            ),
+            os.path.expandvars(
+                r"%ProgramFiles(x86)%\Mozilla Firefox\firefox.exe"
+            ),
+        ]
+
+        for path in firefox_paths:
+
+            if os.path.exists(path):
+
+                try:
+                    subprocess.Popen(
+                        [
+                            path,
+                            "-new-tab",
+                            url
+                        ],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+
+                    return f"Searching YouTube for {query}."
+
+                except Exception:
+                    return "I could not search YouTube in Firefox."
+
+        return "Firefox was not found."
+
+    # =========================================
+    # No browser specified
+    # =========================================
 
     webbrowser.open(url)
 

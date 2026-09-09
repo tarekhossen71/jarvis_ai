@@ -14,3 +14,5 @@ pyperclip
 speedtest-cli
 opencv-python
 pywin32
+psutil
+pygetwindow

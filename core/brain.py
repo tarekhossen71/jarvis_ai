@@ -55,8 +55,65 @@ class Brain:
 
         # Keep last 10 messages
         self.max_history = 10
+        self.max_context = 10
 
 
+    # =========================
+    # AI Intent Classifier
+    # =========================
+
+    def classify_intent(self, user_text):
+
+        prompt = f"""
+            You are JARVIS Intent Classifier.
+
+            Your job is ONLY to identify the user's intent.
+
+            Currently supported intent:
+
+            - read_clipboard
+
+            Examples:
+
+            "what is in my clipboard?" -> read_clipboard
+            "what did I copy?" -> read_clipboard
+            "show me my clipboard" -> read_clipboard
+            "tell me what I copied" -> read_clipboard
+            "can you read my clipboard?" -> read_clipboard
+
+            If the user is NOT asking to read the clipboard, return:
+            "unknown"
+
+            Return ONLY one of these values:
+
+            read_clipboard
+            unknown
+
+            User message:
+            {user_text}
+            """
+
+        try:
+
+            response = self.client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt
+            )
+
+            result = response.text.strip().lower()
+
+            if result == "read_clipboard":
+                return result
+
+            return "unknown"
+
+        except Exception as e:
+
+            print(
+                f"⚠️ Intent classification error: {e}"
+            )
+
+            return "unknown"
     # =========================
     # Main AI
     # =========================
@@ -457,3 +514,68 @@ SAVED MEMORY:
             "Offline AI conversation history has been cleared."
         )
 
+        # =========================
+    # AI Intent Classifier
+    # =========================
+
+    def classify_intent(self, user_text):
+
+        prompt = f"""
+            You are JARVIS Intent Classifier.
+
+            Identify the user's intent.
+
+            Supported intent:
+
+            read_clipboard
+
+            Examples:
+
+            "what is in my clipboard?" -> read_clipboard
+            "what did I copy?" -> read_clipboard
+            "show me my clipboard" -> read_clipboard
+            "tell me what I copied" -> read_clipboard
+            "can you read my clipboard?" -> read_clipboard
+
+            If it is not a clipboard request:
+
+            unknown
+
+            Return ONLY:
+
+            read_clipboard
+
+            or
+
+            unknown
+
+            User message:
+            {user_text}
+            """
+
+        try:
+
+            response = self.client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt
+            )
+
+            print(
+                f"🔎 Raw AI Intent Response: {response.text}"
+            )
+
+            result = response.text.strip().lower()
+
+            if "read_clipboard" in result:
+
+                return "read_clipboard"
+
+            return "unknown"
+
+        except Exception as e:
+
+            print(
+                f"❌ Intent Classifier Error: {e}"
+            )
+
+            return "unknown"

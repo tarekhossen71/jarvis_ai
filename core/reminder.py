@@ -88,6 +88,33 @@ class ReminderManager:
         except ValueError:
             return "Please provide a valid number of minutes."
 
+    def add_reminder_at(self, text, remind_at):
+        try:
+            if not isinstance(remind_at, datetime):
+                return "Invalid reminder time."
+
+            if remind_at <= datetime.now():
+                return "Reminder time must be in the future."
+
+            reminder = {
+                "id": str(uuid.uuid4())[:8],
+                "text": text.strip(),
+                "remind_at": remind_at.isoformat(),
+                "completed": False
+            }
+
+            self.reminders = self._load()
+            self.reminders.append(reminder)
+            self._save(self.reminders)
+
+            return (
+                f"Reminder set for "
+                f"{remind_at.strftime('%Y-%m-%d %I:%M %p')}. "
+                f"I will remind you to {text.strip()}."
+            )
+
+        except Exception as e:
+            return f"Could not create reminder: {e}"
     def list_reminders(self):
         self.reminders = self._load()
 

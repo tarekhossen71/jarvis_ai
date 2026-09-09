@@ -1,6 +1,5 @@
-
 import re
-
+from tools.browser_tools import search_youtube
 
 class MultiStepIntents:
 
@@ -9,12 +8,7 @@ class MultiStepIntents:
 
     def split_commands(self, command):
 
-        # Examples:
-        # open notepad and open calculator
-        # open notepad then open calculator
-        # open notepad and then open calculator
-        # open notepad and calculator
-
+        # Split only when "and / then / and then" is used
         parts = re.split(
             r"\s+(?:and then|then|and)\s+",
             command,
@@ -27,6 +21,61 @@ class MultiStepIntents:
             if part.strip()
         ]
 
+    def normalize_step(self, part, index):
+
+        part = part.strip()
+
+        if not part:
+            return None
+
+        # -----------------------------------------
+        # Known applications
+        # -----------------------------------------
+
+        known_apps = [
+            "notepad",
+            "note pad",
+            "calculator",
+            "calc",
+            "explorer",
+            "file explorer",
+            "command prompt",
+            "cmd",
+            "powershell",
+            "power shell",
+            "vscode",
+            "vs code",
+            "visual studio code",
+            "chrome",
+            "google chrome",
+        ]
+
+        # -----------------------------------------
+        # Example:
+        # open notepad and calculator
+        #
+        # Step 1:
+        # open notepad
+        #
+        # Step 2:
+        # calculator
+        #
+        # Convert step 2 -> open calculator
+        # -----------------------------------------
+
+        if index > 1:
+
+            if not re.match(
+                r"^(open|launch|start|close|exit|quit)\s+",
+                part,
+                re.IGNORECASE
+            ):
+
+                if part.lower() in known_apps:
+                    part = f"open {part}"
+
+        return part
+
     def execute(self, command):
 
         parts = self.split_commands(command)
@@ -37,53 +86,67 @@ class MultiStepIntents:
 
         results = []
 
+        # Browser context
+        active_browser = None
+
         for index, part in enumerate(parts, start=1):
 
-            # -----------------------------------------
-            # Handle app names without "open"
-            # -----------------------------------------
-            #
-            # Example:
-            # open notepad and calculator
-            #
-            # becomes:
-            # open notepad
-            # open calculator
-            #
-            if index > 1 and not re.match(
-                r"^(open|launch|start|close|exit|quit)\s+",
+            part = self.normalize_step(part, index)
+
+            if not part:
+                continue
+
+            print(f"🔹 Step {index}: {part}")
+
+            # =========================================
+            # Detect browser from previous step
+            # =========================================
+
+            if re.fullmatch(
+                r"open (chrome|google chrome)",
                 part,
                 re.IGNORECASE
             ):
+                active_browser = "chrome"
 
-                known_apps = [
-                    "notepad",
-                    "note pad",
-                    "calculator",
-                    "calc",
-                    "explorer",
-                    "file explorer",
-                    "command prompt",
-                    "cmd",
-                    "powershell",
-                    "power shell",
-                    "vscode",
-                    "vs code",
-                    "visual studio code",
-                    "chrome",
-                    "google chrome",
-                ]
+            elif re.fullmatch(
+                r"open firefox",
+                part,
+                re.IGNORECASE
+            ):
+                active_browser = "firefox"
 
-                if part.lower() in known_apps:
-                    part = f"open {part}"
+            # =========================================
+            # YouTube search with browser context
+            # =========================================
 
-            # -----------------------------------------
-            # Execute Step
-            # -----------------------------------------
+            youtube_match = re.fullmatch(
+                r"search youtube for (.+)",
+                part,
+                re.IGNORECASE
+            )
 
-            result = self.intent_manager.execute_single(part)
+            if youtube_match and active_browser:
 
+                query = youtube_match.group(1).strip()
+
+                result = search_youtube(
+                    query,
+                    browser=active_browser
+                )
+
+            else:
+
+                # =====================================
+                # Normal intent execution
+                # =====================================
+
+                result = self.intent_manager.execute_single(part)
+
+            # =========================================
             # Step failed
+            # =========================================
+
             if not result:
 
                 return (
@@ -91,6 +154,6 @@ class MultiStepIntents:
                     f"I couldn't execute '{part}'."
                 )
 
-            results.append(result)
+            results.append(str(result))
 
         return " ".join(results)

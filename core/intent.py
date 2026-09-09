@@ -15,17 +15,23 @@ from intents.automation_intents import AutomationIntents
 from intents.app_intents import AppIntents
 from intents.multi_step_intents import MultiStepIntents
 from core.plugin_manager import PluginManager
-
-
+from core.system_monitor import SystemMonitor
+from intents.system_monitor_intents import SystemMonitorIntents
 
 from core.reminder import ReminderManager
 import tools.file_tools as file_tools
 class IntentManager:
 
-    def __init__(self, speaker=None):
+    def __init__(self, speaker=None, brain=None):
+        self.brain = brain
         self.memory = MemoryManager()
         self.confirmation = ConfirmationManager()
         self.reminder = ReminderManager(speaker)
+
+        self.system_monitor = SystemMonitor()
+        self.system_monitor_intents = SystemMonitorIntents(
+            self.system_monitor
+        )
         # =========================
         # System
         # =========================
@@ -37,6 +43,7 @@ class IntentManager:
         self.help_intents = HelpIntents(self.normalize)
         self.reminder_intents = ReminderIntents(self.reminder)
 
+        
         self.file_intents = FileIntents(
             self.confirmation,
             file_tools
@@ -102,6 +109,9 @@ class IntentManager:
         if not command:
             return None
 
+        # Window move commands
+        if re.fullmatch(r"move .+ to \d+,\s*\d+", command, re.IGNORECASE):
+            return self.execute_single(command)
         memory_result = self.memory.process(command)
 
         if memory_result:
@@ -132,6 +142,7 @@ class IntentManager:
         if not command:
             return None
 
+        
        
         if self.confirmation.has_pending():
 
@@ -201,6 +212,30 @@ class IntentManager:
             return result
 
         # =========================
+        # WINDOW MOVE
+        # =========================
+
+        if re.fullmatch(
+            r"move .+ to \d+,\s*\d+",
+            command,
+            re.IGNORECASE
+        ):
+            result = self.app_intents.move_app(command)
+
+            if result:
+                return result
+
+        if re.fullmatch(
+            r"move .+ to position \d+,\s*\d+",
+            command,
+            re.IGNORECASE
+        ):
+            result = self.app_intents.move_app(command)
+
+            if result:
+                return result
+            
+        # =========================
         # FILE INTENTS
         # =========================
 
@@ -265,6 +300,15 @@ class IntentManager:
             return result
 
         result = self.system_intents.restart(command)
+        if result:
+            return result
+
+        # =========================
+        # SYSTEM MONITOR
+        # =========================
+
+        result = self.system_monitor_intents.execute(command)
+
         if result:
             return result
 
@@ -628,6 +672,26 @@ class IntentManager:
 
         #             return data["function"]()
 
+
+                # =========================
+        # AI Intent Classification
+        # =========================
+
+        if self.brain:
+
+            ai_intent = self.brain.classify_intent(
+                command
+            )
+
+            print(
+                f"🧠 AI Intent: {ai_intent}"
+            )
+
+            if ai_intent == "read_clipboard":
+
+                return self.system_intents.clipboard(
+                    "read clipboard"
+                )
 
         return None
 

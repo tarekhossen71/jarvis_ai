@@ -12,11 +12,13 @@ import sys
 import time
 import subprocess
 
-
 listener = Listener()
 speaker = Speaker()
 brain = Brain()
-intent_manager = IntentManager(speaker)
+intent_manager = IntentManager(
+    speaker,
+    brain
+)
 speech_queue = queue.Queue()
 
 
