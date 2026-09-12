@@ -3,9 +3,10 @@ import re
 
 class FileIntents:
 
-    def __init__(self, confirmation, tools):
+    def __init__(self, confirmation, tools, resolver=None):
         self.confirmation = confirmation
         self.tools = tools
+        self.resolver = resolver
 
     def normalize(self, text):
         return text.lower().strip()
@@ -351,22 +352,65 @@ class FileIntents:
                 re.IGNORECASE
             )
 
-            if match:
+            if not match:
+                continue
 
-                item_name = match.group(1).strip()
+            item_name = match.group(1).strip()
 
-                if not item_name:
-                    return "What should I delete?"
+            if not item_name:
+                return "What should I delete?"
 
-                return self.confirmation.ask(
-                    f"delete {item_name}",
-                    lambda: self.tools.delete_item(
-                        item_name
+            # ==========================================
+            # Resolve the real filesystem path first
+            # ==========================================
+
+            resolved_path = None
+
+            if self.resolver:
+                try:
+                    resolved_path = self.resolver(item_name)
+                except Exception:
+                    resolved_path = None
+
+            # ==========================================
+            # If resolver found the item
+            # ==========================================
+
+            if resolved_path:
+
+                resolved_path = str(resolved_path).strip()
+
+                if resolved_path and self._path_exists(resolved_path):
+
+                    return self.confirmation.ask(
+                        f"delete {resolved_path}",
+                        lambda path=resolved_path: self.tools.delete_item(
+                            path
+                        )
                     )
+
+            # ==========================================
+            # Fallback to old behavior
+            # ==========================================
+
+            return self.confirmation.ask(
+                f"delete {item_name}",
+                lambda name=item_name: self.tools.delete_item(
+                    name
                 )
+            )
 
         return None
 
+
+    def _path_exists(self, path):
+
+        import os
+
+        try:
+            return os.path.exists(path)
+        except Exception:
+            return False
     # =========================
     # Empty Recycle Bin
     # =========================

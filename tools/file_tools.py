@@ -563,6 +563,31 @@ def get_recent_files():
 
 def delete_item(item_name):
 
+    # ==========================================
+    # Exact path support
+    # ==========================================
+
+    if os.path.exists(item_name):
+
+        try:
+
+            send2trash(item_name)
+
+            return (
+                f"Deleted {os.path.normpath(item_name)}."
+            )
+
+        except Exception as e:
+
+            return (
+                f"Could not delete "
+                f"{os.path.normpath(item_name)}: {e}"
+            )
+
+    # ==========================================
+    # Fallback: search common user folders
+    # ==========================================
+
     home = os.path.expanduser("~")
 
     search_locations = [

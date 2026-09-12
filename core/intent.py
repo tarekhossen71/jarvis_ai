@@ -84,7 +84,8 @@ class IntentManager:
 
         self.file_intents = FileIntents(
             self.confirmation,
-            file_tools
+            file_tools,
+            self.resolve_location
         )
 
         # =========================
