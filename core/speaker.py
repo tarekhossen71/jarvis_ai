@@ -1,3 +1,4 @@
+
 import asyncio
 import os
 import uuid
@@ -38,6 +39,7 @@ class Speaker:
 
         try:
 
+            # Generate audio
             asyncio.run(
                 self._generate_audio(
                     text,
@@ -45,7 +47,14 @@ class Speaker:
                 )
             )
 
-            playsound(filename)
+            # Play audio
+            try:
+
+                playsound(filename)
+
+            except Exception as e:
+
+                print(f"🔊 Playback Error: {e}")
 
         except Exception as e:
 
@@ -53,11 +62,13 @@ class Speaker:
 
         finally:
 
-            if os.path.exists(filename):
+            # Give Windows/COM a moment to release the file
+            try:
 
-                try:
+                if os.path.exists(filename):
+
                     os.remove(filename)
 
-                except:
-                    pass
+            except Exception:
 
+                pass

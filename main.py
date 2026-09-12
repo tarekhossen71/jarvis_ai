@@ -1,15 +1,56 @@
+
+from config import INPUT_MODE
+
+import queue
+import threading
 from core.listener import Listener
 from core.speaker import Speaker
-from core.brain import JarvisBrain
+from core.brain import Brain
 from core.intent import IntentManager
-
+import os
+import sys
+import time
+import subprocess
 
 listener = Listener()
 speaker = Speaker()
-brain = JarvisBrain()
-intent_manager = IntentManager()
+brain = Brain()
+intent_manager = IntentManager(
+    speaker,
+    brain
+)
+speech_queue = queue.Queue()
 
 
+# =========================
+# Reload JARVIS
+# =========================
+
+def reload_jarvis():
+
+    print("🔄 Reloading JARVIS...")
+
+    try:
+
+        time.sleep(0.3)
+
+        subprocess.Popen(
+            [sys.executable, sys.argv[0]],
+            cwd=os.path.dirname(os.path.abspath(__file__))
+        )
+
+        return True
+
+    except Exception as e:
+
+        print(f"❌ Reload failed: {e}")
+
+        return False
+
+
+# =========================
+# Process Command
+# =========================
 def process_command(user_text):
 
     if not user_text:
@@ -17,30 +58,71 @@ def process_command(user_text):
 
     command = user_text.lower().strip()
 
-    # Exit JARVIS completely
+    # =========================
+    # Switch Input Mode
+    # =========================
+
+    voice_commands = [
+        "voice mode",
+        "switch to voice mode",
+        "change to voice mode",
+        "voice on",
+    ]
+
+    text_commands = [
+        "text mode",
+        "switch to text mode",
+        "change to text mode",
+        "text on",
+    ]
+
+    if command in voice_commands:
+
+        listener.set_mode("voice")
+
+        speaker.speak("Switching to voice mode.")
+
+        return "SWITCH_VOICE"
+
+    if command in text_commands:
+
+        listener.set_mode("text")
+
+        speaker.speak("Switching to text mode.")
+
+        return "SWITCH_TEXT"
+
+    # Completely close JARVIS
     if listener.is_exit_command(command):
 
         speaker.speak("Goodbye Tarek.")
 
         return False
 
-    # Stop current listening session
+    # Stop listening / sleep mode
     if listener.is_stop_command(command):
 
         speaker.speak("Okay Tarek. I am going to sleep.")
 
         return True
 
-    # Execute local command
+    # Local command execution
     command_result = intent_manager.execute(user_text)
+
+    # Restart JARVIS
+    if command_result == "__RELOAD_JARVIS__":
+
+        print("🔄 Restarting JARVIS...")
+
+        return "RELOAD"
 
     if command_result:
 
-        speaker.speak(command_result)
+        speech_queue.put(command_result)
 
         return True
 
-    # Ask Gemini
+    # AI response
     answer = brain.ask(user_text)
 
     speaker.speak(answer)
@@ -48,15 +130,38 @@ def process_command(user_text):
     return True
 
 
+
+# =========================
+# Text Mode
+# =========================
+
 def run_text_mode():
+
+    speaker.speak("Hello Tarek. JARVIS is online.")
 
     while True:
 
         user_text = listener.listen()
 
-        if not process_command(user_text):
+        result = process_command(user_text)
+
+        if result == "SWITCH_VOICE":
+            return "VOICE"
+
+        if result == "RELOAD":
+
+            reload_jarvis()
+
             break
 
+        if not result:
+
+            break
+
+
+# =========================
+# Voice Mode
+# =========================
 
 def run_voice_mode():
 
@@ -66,7 +171,67 @@ def run_voice_mode():
 
     while True:
 
-        if conversation_mode:
+        # --------------------------------------------------
+        # Wake-word mode
+        # --------------------------------------------------
+
+        if not conversation_mode:
+
+            print("\n💤 Waiting for wake word...")
+
+            user_text = listener.listen()
+
+            if not user_text:
+                continue
+
+            command = user_text.lower().strip()
+
+            if listener.is_exit_command(command):
+
+                speaker.speak("Goodbye Tarek.")
+
+                break
+
+            if listener.is_stop_command(command):
+
+                continue
+
+            if not listener.contains_wake_word(command):
+
+                print("💤 Wake word not detected.")
+
+                continue
+
+            command = listener.remove_wake_word(command)
+
+            if command:
+
+                result = process_command(command)
+
+                if result == "SWITCH_TEXT":
+                    return "TEXT"
+
+                if result == "RELOAD":
+
+                    reload_jarvis()
+
+                    break
+
+                if not result:
+
+                    break
+
+            else:
+
+                speaker.speak("Yes Tarek?")
+
+            conversation_mode = True
+
+        # --------------------------------------------------
+        # Continuous conversation mode
+        # --------------------------------------------------
+
+        else:
 
             print("\n🟢 Conversation mode active.")
             print("💤 Say 'stop listening' to sleep.")
@@ -78,14 +243,12 @@ def run_voice_mode():
 
             command = user_text.lower().strip()
 
-            # Exit JARVIS completely
             if listener.is_exit_command(command):
 
                 speaker.speak("Goodbye Tarek.")
 
                 break
 
-            # Stop conversation mode
             if listener.is_stop_command(command):
 
                 speaker.speak("Okay Tarek. I am going to sleep.")
@@ -94,66 +257,66 @@ def run_voice_mode():
 
                 continue
 
-            # Execute command or ask AI
-            process_command(user_text)
+            result = process_command(user_text)
 
-            continue
+            if result == "RELOAD":
 
-        # Wake-word waiting mode
-        print("\n💤 Waiting for wake word...")
+                reload_jarvis()
 
-        wake_text = listener.listen()
+                break
 
-        if not wake_text:
-            continue
 
-        wake_text = wake_text.lower().strip()
+# =========================
+# Speech Worker
+# =========================
 
-        # Exit without wake word
-        if listener.is_exit_command(wake_text):
+def speech_worker():
 
-            speaker.speak("Goodbye Tarek.")
+    while True:
+
+        text = speech_queue.get()
+
+        if text is None:
 
             break
 
-        # Ignore stop command when already sleeping
-        if listener.is_stop_command(wake_text):
+        speaker.speak(text)
 
-            continue
+        speech_queue.task_done()
 
-        # Wake word not detected
-        if not listener.contains_wake_word(wake_text):
 
-            print("💤 Wake word not detected.")
+threading.Thread(
+    target=speech_worker,
+    daemon=True
+).start()
 
-            continue
 
-        # Remove wake word
-        command = listener.remove_wake_word(wake_text)
-
-        # Example: Hey Jarvis, open YouTube
-        if command:
-
-            if not process_command(command):
-                break
-
-        else:
-
-            speaker.speak("Yes Tarek?")
-
-        # Activate continuous conversation
-        conversation_mode = True
+# =========================
+# Start JARVIS
+# =========================
 
 if __name__ == "__main__":
 
-    if listener.__class__.__module__:
+    current_mode = listener.get_mode()
 
-        from config import INPUT_MODE
+    while True:
 
-        if INPUT_MODE.lower() == "text":
+        if current_mode == "text":
 
-            run_text_mode()
+            result = run_text_mode()
 
         else:
 
-            run_voice_mode()
+            result = run_voice_mode()
+
+        if result == "VOICE":
+
+            current_mode = "voice"
+            continue
+
+        if result == "TEXT":
+
+            current_mode = "text"
+            continue
+
+        break

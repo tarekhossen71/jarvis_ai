@@ -1,3 +1,4 @@
+
 import speech_recognition as sr
 
 from config import INPUT_MODE
@@ -10,12 +11,38 @@ class Listener:
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
 
+        # Runtime input mode
+        self.input_mode = (INPUT_MODE or "text").lower()
+
         self.wake_words = [
             "hey jarvis",
             "hi jarvis",
             "hello jarvis",
             "jarvis",
         ]
+
+    # =========================
+    # Mode Control
+    # =========================
+
+    def set_mode(self, mode):
+
+        mode = mode.lower().strip()
+
+        if mode not in ["text", "voice"]:
+            return False
+
+        self.input_mode = mode
+
+        return True
+
+    def get_mode(self):
+
+        return self.input_mode
+
+    # =========================
+    # Exit Command
+    # =========================
 
     def is_exit_command(self, command):
 
@@ -34,6 +61,10 @@ class Listener:
             "বাই",
         ]
 
+    # =========================
+    # Stop Listening
+    # =========================
+
     def is_stop_command(self, command):
 
         command = command.lower().strip()
@@ -46,6 +77,10 @@ class Listener:
             "শোনা বন্ধ কর",
             "বন্ধ হও",
         ]
+
+    # =========================
+    # Wake Word
+    # =========================
 
     def contains_wake_word(self, text):
 
@@ -73,6 +108,10 @@ class Listener:
 
         return text
 
+    # =========================
+    # Text Listening
+    # =========================
+
     def listen_text(self):
 
         try:
@@ -82,6 +121,10 @@ class Listener:
         except EOFError:
 
             return "exit"
+
+    # =========================
+    # Voice Listening
+    # =========================
 
     def listen_voice(self):
 
@@ -135,10 +178,15 @@ class Listener:
 
                 return ""
 
+    # =========================
+    # Main Listener
+    # =========================
+
     def listen(self):
 
-        if INPUT_MODE.lower() == "text":
+        if self.input_mode == "text":
 
             return self.listen_text()
 
         return self.listen_voice()
+

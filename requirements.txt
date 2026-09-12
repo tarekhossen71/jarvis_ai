@@ -6,3 +6,13 @@ edge-tts
 playsound==1.2.2
 sounddevice
 soundfile
+pycaw
+comtypes
+pyautogui
+pillow
+pyperclip
+speedtest-cli
+opencv-python
+pywin32
+psutil
+pygetwindow

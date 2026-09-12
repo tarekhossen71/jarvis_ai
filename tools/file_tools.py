@@ -87,27 +87,30 @@ def open_videos():
 # =========================
 # Create Folder
 # =========================
-
-def create_folder(folder_name):
-
+def create_folder(folder_name, location=None):
     folder_name = folder_name.strip()
 
     if not folder_name:
         return "Please provide a folder name."
 
-    path = get_user_path(folder_name)
+    if location:
+        location = os.path.expandvars(
+            os.path.expanduser(location.strip())
+        )
+    else:
+        location = os.path.expanduser("~")
+
+    path = os.path.join(location, folder_name)
 
     if os.path.exists(path):
-        return f"The folder {folder_name} already exists."
+        return f"The folder {folder_name} already exists at {path}."
 
     try:
+        os.makedirs(path, exist_ok=True)
 
-        os.makedirs(path)
-
-        return f"Folder {folder_name} created successfully."
+        return f"Folder {folder_name} created at {path}."
 
     except Exception as e:
-
         return f"Could not create folder: {e}"
 
 
@@ -115,8 +118,7 @@ def create_folder(folder_name):
 # Create Text File
 # =========================
 
-def create_text_file(file_name):
-
+def create_text_file(file_name, location=None, content=""):
     file_name = file_name.strip()
 
     if not file_name:
@@ -125,23 +127,27 @@ def create_text_file(file_name):
     if not file_name.lower().endswith(".txt"):
         file_name += ".txt"
 
-    path = os.path.join(
-        get_user_path("Desktop"),
-        file_name
-    )
-
-    if os.path.exists(path):
-        return f"The file {file_name} already exists."
+    if location:
+        location = os.path.expandvars(
+            os.path.expanduser(location.strip())
+        )
+    else:
+        location = get_user_path("Desktop")
 
     try:
+        os.makedirs(location, exist_ok=True)
+
+        path = os.path.join(location, file_name)
+
+        if os.path.exists(path):
+            return f"The file {file_name} already exists at {path}."
 
         with open(path, "w", encoding="utf-8") as file:
-            file.write("")
+            file.write(content)
 
-        return f"Text file {file_name} created on Desktop."
+        return f"File {file_name} created at {path}."
 
     except Exception as e:
-
         return f"Could not create file: {e}"
 
 
@@ -613,3 +619,141 @@ def empty_recycle_bin():
     except Exception as e:
 
         return f"Could not empty the Recycle Bin: {e}"
+
+def find_existing_file(file_name):
+    """
+    Find an existing file by:
+    1. Exact/full path
+    2. Common user folders
+    """
+
+    file_name = file_name.strip()
+
+    # Full/direct path
+    direct_path = os.path.expandvars(
+        os.path.expanduser(file_name)
+    )
+
+    if os.path.isfile(direct_path):
+        return direct_path
+
+    # Common folders
+    search_locations = [
+        os.path.expanduser("~"),
+        get_user_path("Desktop"),
+        get_user_path("Documents"),
+        get_user_path("Downloads"),
+        get_user_path("Pictures"),
+        get_user_path("Music"),
+        get_user_path("Videos"),
+    ]
+
+    for location in search_locations:
+
+        if not os.path.exists(location):
+            continue
+
+        for root, dirs, files in os.walk(location):
+
+            for file in files:
+
+                if file.lower() == file_name.lower():
+
+                    return os.path.join(
+                        root,
+                        file
+                    )
+
+    return None
+
+
+def write_to_file(file_name, content):
+    """
+    Replace existing file content.
+    """
+
+    file_name = file_name.strip()
+
+    if not file_name:
+        return "Please provide a file name."
+
+    path = find_existing_file(file_name)
+
+    if not path:
+        return f"I couldn't find the file {file_name}."
+
+    try:
+
+        with open(path, "w", encoding="utf-8") as file:
+            file.write(content)
+
+        return f"Content written to {os.path.basename(path)}."
+
+    except Exception as e:
+
+        return f"Could not write to file: {e}"
+
+
+def append_to_file(file_name, content):
+    """
+    Add content to the end of an existing file.
+    """
+
+    file_name = file_name.strip()
+
+    if not file_name:
+        return "Please provide a file name."
+
+    path = find_existing_file(file_name)
+
+    if not path:
+        return f"I couldn't find the file {file_name}."
+
+    try:
+
+        with open(path, "a", encoding="utf-8") as file:
+
+            # Add newline before appended content
+            if os.path.getsize(path) > 0:
+                file.write("\n")
+
+            file.write(content)
+
+        return f"Content appended to {os.path.basename(path)}."
+
+    except Exception as e:
+
+        return f"Could not append to file: {e}"
+
+
+def read_file(file_name):
+    """
+    Read content from an existing text file.
+    """
+
+    file_name = file_name.strip()
+
+    if not file_name:
+        return "Please provide a file name."
+
+    path = find_existing_file(file_name)
+
+    if not path:
+        return f"I couldn't find the file {file_name}."
+
+    try:
+
+        with open(path, "r", encoding="utf-8") as file:
+            content = file.read()
+
+        if not content.strip():
+            return f"{os.path.basename(path)} is empty."
+
+        return (
+            f"Content of {os.path.basename(path)}:\n"
+            f"{content}"
+        )
+
+    except Exception as e:
+
+        return f"Could not read file: {e}"
