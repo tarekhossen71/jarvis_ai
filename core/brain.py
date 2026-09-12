@@ -424,7 +424,7 @@ class Brain:
         self.client = genai.Client(
             api_key=GEMINI_API_KEY
         )
-
+        self.model_name = MODEL_NAME
         self.chat = self.client.chats.create(
             model=MODEL_NAME,
             config=types.GenerateContentConfig(

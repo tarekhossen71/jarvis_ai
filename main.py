@@ -7,6 +7,10 @@ from core.listener import Listener
 from core.speaker import Speaker
 from core.brain import Brain
 from core.intent import IntentManager
+from core.planner import TaskPlanner
+from core.executor import TaskExecutor
+from core.verifier import TaskVerifier
+
 import os
 import sys
 import time
@@ -19,8 +23,17 @@ intent_manager = IntentManager(
     speaker,
     brain
 )
-speech_queue = queue.Queue()
+# speech_queue = queue.Queue()
 
+# =========================
+# Autonomous JARVIS V3
+# =========================
+
+planner = TaskPlanner(brain)
+executor = TaskExecutor(intent_manager)
+verifier = TaskVerifier()
+
+speech_queue = queue.Queue()
 
 # =========================
 # Reload JARVIS
@@ -51,6 +64,7 @@ def reload_jarvis():
 # =========================
 # Process Command
 # =========================
+
 def process_command(user_text):
 
     if not user_text:
@@ -80,7 +94,9 @@ def process_command(user_text):
 
         listener.set_mode("voice")
 
-        speaker.speak("Switching to voice mode.")
+        speaker.speak(
+            "Switching to voice mode."
+        )
 
         return "SWITCH_VOICE"
 
@@ -88,48 +104,127 @@ def process_command(user_text):
 
         listener.set_mode("text")
 
-        speaker.speak("Switching to text mode.")
+        speaker.speak(
+            "Switching to text mode."
+        )
 
         return "SWITCH_TEXT"
 
+    # =========================
     # Completely close JARVIS
+    # =========================
+
     if listener.is_exit_command(command):
 
-        speaker.speak("Goodbye Tarek.")
+        speaker.speak(
+            "Goodbye Tarek."
+        )
 
         return False
 
-    # Stop listening / sleep mode
+    # =========================
+    # Stop listening / sleep
+    # =========================
+
     if listener.is_stop_command(command):
 
-        speaker.speak("Okay Tarek. I am going to sleep.")
+        speaker.speak(
+            "Okay Tarek. I am going to sleep."
+        )
 
         return True
 
-    # Local command execution
-    command_result = intent_manager.execute(user_text)
+    # ============================================================
+    # JARVIS V3 AUTONOMOUS MODE
+    # ============================================================
 
+    autonomous_keywords = [
+        " and ",
+        " then ",
+        " after that ",
+        " also ",
+        " build ",
+        " create ",
+        " make ",
+        " prepare ",
+        " set up ",
+        " organize ",
+        " automate ",
+        " do everything ",
+        " complete this ",
+        " do this for me",
+    ]
+
+    is_autonomous_request = any(
+        keyword in command
+        for keyword in autonomous_keywords
+    )
+
+    # ------------------------------------------------------------
+    # IMPORTANT:
+    # Check autonomous mode BEFORE IntentManager.
+    #
+    # Otherwise IntentManager may execute only the first
+    # command and JARVIS V3 will never get the full task.
+    # ------------------------------------------------------------
+
+    if is_autonomous_request:
+
+        autonomous_result = run_autonomous_task(
+            user_text
+        )
+
+        if autonomous_result:
+
+            speech_queue.put(
+                autonomous_result
+            )
+
+            return True
+
+        return True
+
+    # ============================================================
+    # V2 LOCAL COMMAND EXECUTION
+    # ============================================================
+
+    command_result = intent_manager.execute(
+        user_text
+    )
+
+    # =========================
     # Restart JARVIS
+    # =========================
+
     if command_result == "__RELOAD_JARVIS__":
 
-        print("🔄 Restarting JARVIS...")
+        print(
+            "🔄 Restarting JARVIS..."
+        )
 
         return "RELOAD"
 
     if command_result:
 
-        speech_queue.put(command_result)
+        speech_queue.put(
+            command_result
+        )
 
         return True
 
-    # AI response
-    answer = brain.ask(user_text)
+    # ============================================================
+    # Normal AI response
+    # ============================================================
 
-    speaker.speak(answer)
+    answer = brain.ask(
+        user_text
+    )
+
+    speaker.speak(
+        answer
+    )
 
     return True
-
-
 
 # =========================
 # Text Mode
@@ -291,6 +386,149 @@ threading.Thread(
 ).start()
 
 
+
+# ============================================================
+# JARVIS V3 AUTONOMOUS TASK
+# ============================================================
+
+def run_autonomous_task(user_text):
+
+    print("\n" + "=" * 60)
+    print("🤖 JARVIS V3 AUTONOMOUS MODE")
+    print("=" * 60)
+
+    print(f"🎯 Goal: {user_text}")
+
+    # --------------------------------------------------------
+    # Create plan
+    # --------------------------------------------------------
+
+    plan = planner.create_plan(
+        user_text
+    )
+
+    if not plan:
+
+        print("❌ Could not create a task plan.")
+
+        return None
+
+    goal = plan.get(
+        "goal",
+        user_text
+    )
+
+    steps = plan.get(
+        "steps",
+        []
+    )
+
+    print(f"\n🧠 Goal: {goal}")
+
+    print("\n📋 Plan:")
+
+    for step in steps:
+
+        print(
+            f"  {step.get('step')}. "
+            f"{step.get('description')}"
+        )
+
+    if not steps:
+
+        print("❌ Planner returned no steps.")
+
+        return None
+
+    # --------------------------------------------------------
+    # Execute plan
+    # --------------------------------------------------------
+
+    print("\n⚙️ Executing task...")
+
+    execution = executor.execute_plan(
+        plan
+    )
+
+    if not execution:
+
+        return (
+            "I could not execute the task."
+        )
+
+    results = execution.get(
+        "results",
+        []
+    )
+
+    # --------------------------------------------------------
+    # Verify each step
+    # --------------------------------------------------------
+
+    all_verified = True
+
+    for item in results:
+
+        step_number = item.get(
+            "step"
+        )
+
+        result = item.get(
+            "result"
+        )
+
+        step_data = None
+
+        for step in steps:
+
+            if step.get("step") == step_number:
+
+                step_data = step
+                break
+
+        if step_data:
+
+            verified = verifier.verify(
+                step_data,
+                result
+            )
+
+            if verified:
+
+                print(
+                    f"✅ Step {step_number} verified."
+                )
+
+            else:
+
+                print(
+                    f"❌ Step {step_number} failed."
+                )
+
+                all_verified = False
+
+    # --------------------------------------------------------
+    # Final result
+    # --------------------------------------------------------
+
+    if all_verified and execution.get(
+        "success",
+        False
+    ):
+
+        print("\n✅ Autonomous task completed.")
+
+        return (
+            f"Task completed successfully. "
+            f"I completed {len(results)} step(s)."
+        )
+
+    print("\n⚠️ Autonomous task incomplete.")
+
+    return (
+        "I completed part of the task, "
+        "but some steps could not be verified."
+    )
 # =========================
 # Start JARVIS
 # =========================
