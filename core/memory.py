@@ -1,4 +1,3 @@
-
 import json
 import os
 import re
@@ -7,55 +6,36 @@ import re
 class MemoryManager:
 
     def __init__(self):
-
         self.memory_dir = "memory"
-
         self.memory_file = os.path.join(
             self.memory_dir,
             "memory.json"
         )
 
-        os.makedirs(
-            self.memory_dir,
-            exist_ok=True
-        )
+        os.makedirs(self.memory_dir, exist_ok=True)
 
         if not os.path.exists(self.memory_file):
             self._save({})
 
-    # =====================================================
+    # =========================================================
     # LOAD / SAVE
-    # =====================================================
+    # =========================================================
 
     def _load(self):
-
         try:
-
-            with open(
-                self.memory_file,
-                "r",
-                encoding="utf-8"
-            ) as file:
-
+            with open(self.memory_file, "r", encoding="utf-8") as file:
                 data = json.load(file)
 
-                return data if isinstance(data, dict) else {}
+                if isinstance(data, dict):
+                    return data
 
-        except (
-            FileNotFoundError,
-            json.JSONDecodeError
-        ):
+                return {}
 
+        except (FileNotFoundError, json.JSONDecodeError):
             return {}
 
     def _save(self, data):
-
-        with open(
-            self.memory_file,
-            "w",
-            encoding="utf-8"
-        ) as file:
-
+        with open(self.memory_file, "w", encoding="utf-8") as file:
             json.dump(
                 data,
                 file,
@@ -63,16 +43,15 @@ class MemoryManager:
                 ensure_ascii=False
             )
 
-    # =====================================================
-    # REMEMBER
-    # =====================================================
+    # =========================================================
+    # BASIC MEMORY OPERATIONS
+    # =========================================================
 
     def remember(self, key, value):
-
         data = self._load()
 
-        key = key.strip().lower()
-        value = value.strip()
+        key = str(key).strip().lower()
+        value = str(value).strip()
 
         if not key or not value:
             return "I could not save that memory."
@@ -81,448 +60,437 @@ class MemoryManager:
 
         self._save(data)
 
-        return (
-            f"I'll remember that your "
-            f"{key} is {value}."
-        )
+        return f"I'll remember that your {key} is {value}."
 
-    # =====================================================
-    # RECALL
-    # =====================================================
+    def get(self, key):
+        """
+        Dynamically get any saved memory.
+
+        Example:
+            get("project folder")
+            get("work folder")
+            get("favorite editor")
+        """
+
+        data = self._load()
+
+        key = str(key).strip().lower()
+
+        if key in data:
+            return data[key]
+
+        return None
 
     def recall(self, key):
+        key = str(key).strip().lower()
 
-        data = self._load()
+        value = self.get(key)
 
-        key = key.strip().lower()
+        if value is not None:
+            return f"Your {key} is {value}."
 
-        if key in data:
-
-            return (
-                f"Your {key} is "
-                f"{data[key]}."
-            )
-
-        return (
-            f"I don't remember your "
-            f"{key}."
-        )
-
-    # =====================================================
-    # FORGET
-    # =====================================================
+        return f"I don't remember your {key}."
 
     def forget(self, key):
-
         data = self._load()
 
-        key = key.strip().lower()
+        key = str(key).strip().lower()
 
         if key in data:
-
             del data[key]
 
             self._save(data)
 
-            return (
-                f"I forgot your "
-                f"{key}."
-            )
+            return f"I forgot your {key}."
 
-        return (
-            f"I don't have any memory "
-            f"about your {key}."
-        )
+        return f"I don't have any memory about your {key}."
 
-    # =====================================================
-    # SHOW ALL
-    # =====================================================
+    def all_memory(self):
+        return self._load()
 
     def show_all(self):
-
         data = self._load()
 
         if not data:
-
-            return (
-                "I don't have any saved "
-                "memories yet."
-            )
+            return "I don't have any saved memories yet."
 
         result = [
             "Here is what I remember about you:"
         ]
 
         for key, value in data.items():
-
             result.append(
                 f"- Your {key} is {value}"
             )
 
         return "\n".join(result)
 
-    # =====================================================
-    # CLEAR ALL
-    # =====================================================
-
     def clear_all(self):
-
         self._save({})
 
         return "All memories have been cleared."
 
-    # =====================================================
-    # EXTRACT MEMORY
-    # =====================================================
+    # =========================================================
+    # DYNAMIC MEMORY EXTRACTION
+    # =========================================================
 
     def extract_memory(self, text):
 
         command = text.strip()
 
-        # -------------------------------------------------
-        # My name is Tarek
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # "my name is Tarek"
+        # -----------------------------------------------------
 
         match = re.search(
-            r"^(?:my name is|remember my name is|remember my name)\s+(.+)$",
+            r"^(?:remember\s+)?my\s+name\s+is\s+(.+)$",
             command,
             re.IGNORECASE
         )
 
         if match:
-
             value = match.group(1).strip()
 
             if value:
-
                 return "name", value
 
-        # -------------------------------------------------
-        # I live in Dhaka
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # "i live in Dhaka"
+        # -----------------------------------------------------
 
         match = re.search(
-            r"^(?:i live in|my location is|remember i live in)\s+(.+)$",
+            r"^(?:remember\s+)?(?:i\s+live\s+in|my\s+location\s+is)\s+(.+)$",
             command,
             re.IGNORECASE
         )
 
         if match:
-
             value = match.group(1).strip()
 
             if value:
-
                 return "location", value
 
-        # -------------------------------------------------
-        # My job is Laravel developer
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # "my job is Laravel developer"
+        # -----------------------------------------------------
 
         match = re.search(
-            r"^(?:my job is|i work as|my profession is)\s+(.+)$",
+            r"^(?:remember\s+)?(?:my\s+job\s+is|i\s+work\s+as|my\s+profession\s+is)\s+(.+)$",
             command,
             re.IGNORECASE
         )
 
         if match:
-
             value = match.group(1).strip()
 
             if value:
-
                 return "job", value
 
-        # -------------------------------------------------
-        # Favorite programming language
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # "my favorite programming language is PHP"
+        # -----------------------------------------------------
 
         match = re.search(
-            r"^(?:my favorite programming language is|my favorite language is)\s+(.+)$",
+            r"^(?:remember\s+)?my\s+favorite\s+programming\s+language\s+is\s+(.+)$",
             command,
             re.IGNORECASE
         )
 
         if match:
-
             value = match.group(1).strip()
 
             if value:
-
                 return "favorite programming language", value
 
-        # -------------------------------------------------
-        # I like Python
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # "i like Python"
+        # -----------------------------------------------------
 
         match = re.search(
-            r"^i like\s+(.+)$",
+            r"^i\s+like\s+(.+)$",
             command,
             re.IGNORECASE
         )
 
         if match:
-
             value = match.group(1).strip()
 
             if value:
-
                 return "likes", value
 
-        # -------------------------------------------------
-        # I love anime
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # "i love Python"
+        # -----------------------------------------------------
 
         match = re.search(
-            r"^i love\s+(.+)$",
+            r"^i\s+love\s+(.+)$",
             command,
             re.IGNORECASE
         )
 
         if match:
-
             value = match.group(1).strip()
 
             if value:
-
                 return "loves", value
 
-        # -------------------------------------------------
-        # I am learning Laravel
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # "i am learning Python"
+        # -----------------------------------------------------
 
         match = re.search(
-            r"^(?:i am learning|i'm learning|i learn)\s+(.+)$",
+            r"^(?:i\s+am\s+learning|i'm\s+learning|i\s+learn)\s+(.+)$",
             command,
             re.IGNORECASE
         )
 
         if match:
-
             value = match.group(1).strip()
 
             if value:
-
                 return "learning", value
 
-        # -------------------------------------------------
-        # I prefer VS Code
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # "i prefer VS Code"
+        # -----------------------------------------------------
 
         match = re.search(
-            r"^(?:i prefer|my preferred)\s+(.+)$",
+            r"^(?:i\s+prefer|my\s+preferred)\s+(.+)$",
             command,
             re.IGNORECASE
         )
 
         if match:
-
             value = match.group(1).strip()
 
             if value:
-
                 return "preference", value
 
-        # -------------------------------------------------
-        # My favorite editor is VS Code
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # "my favorite editor is VS Code"
+        # -----------------------------------------------------
 
         match = re.search(
-            r"^my favorite editor is\s+(.+)$",
+            r"^my\s+favorite\s+editor\s+is\s+(.+)$",
+            command,
+            re.IGNORECASE
+        )
+
+        if match:
+            value = match.group(1).strip()
+
+            if value:
+                return "favorite editor", value
+
+        # -----------------------------------------------------
+        # DYNAMIC:
+        #
+        # remember my project folder D:\Tarek\Projects
+        #
+        # remember my work folder D:\Tarek\Projects
+        #
+        # remember my office PC Tarek-PC
+        #
+        # remember my github username tarek_dev
+        #
+        # No static key list.
+        # -----------------------------------------------------
+
+        match = re.search(
+            r"^remember\s+(?:that\s+)?my\s+(.+?)\s+(?:is|=)\s+(.+)$",
             command,
             re.IGNORECASE
         )
 
         if match:
 
-            value = match.group(1).strip()
+            key = match.group(1).strip()
+            value = match.group(2).strip()
 
-            if value:
+            if key and value:
+                return key, value
 
-                return "favorite editor", value
+        # -----------------------------------------------------
+        # Dynamic:
+        #
+        # remember project folder is D:\Tarek\Projects
+        # remember office = Dhaka
+        # -----------------------------------------------------
+
+        match = re.search(
+            r"^remember\s+(.+?)\s+(?:is|=)\s+(.+)$",
+            command,
+            re.IGNORECASE
+        )
+
+        if match:
+
+            key = match.group(1).strip()
+            value = match.group(2).strip()
+
+            # Avoid treating generic sentences as memory
+            if key and value:
+                return key, value
+
+        # -----------------------------------------------------
+        # Dynamic:
+        #
+        # remember my project folder D:\Tarek\Projects
+        #
+        # IMPORTANT:
+        # This supports values without "is".
+        #
+        # Path detection is used here so Windows paths work.
+        # -----------------------------------------------------
+
+        match = re.search(
+            r"^remember\s+(?:that\s+)?my\s+(.+?)\s+((?:[a-zA-Z]:\\|[a-zA-Z]:/).+)$",
+            command,
+            re.IGNORECASE
+        )
+
+        if match:
+
+            key = match.group(1).strip()
+            value = match.group(2).strip()
+
+            if key and value:
+                return key, value
 
         return None
 
-    # =====================================================
-    # PROCESS
-    # =====================================================
+    # =========================================================
+    # PROCESS MEMORY COMMANDS
+    # =========================================================
 
     def process(self, text):
 
-        command = text.lower().strip()
+        original_text = text.strip()
+        command = original_text.lower().strip()
 
-        # -------------------------------------------------
-        # Save memory
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # SAVE MEMORY
+        # -----------------------------------------------------
 
-        extracted = self.extract_memory(text)
+        extracted = self.extract_memory(original_text)
 
         if extracted:
 
             key, value = extracted
 
-            return self.remember(
-                key,
-                value
+            return self.remember(key, value)
+
+        # -----------------------------------------------------
+        # DYNAMIC RECALL
+        #
+        # what is my project folder
+        # what is my work folder
+        # what is my github username
+        # where is my project folder
+        # tell me my project folder
+        #
+        # No static key list.
+        # -----------------------------------------------------
+
+        recall_patterns = [
+            r"^what\s+is\s+my\s+(.+)$",
+            r"^what's\s+my\s+(.+)$",
+            r"^where\s+is\s+my\s+(.+)$",
+            r"^tell\s+me\s+my\s+(.+)$",
+            r"^do\s+you\s+remember\s+my\s+(.+)$",
+            r"^do\s+you\s+remember\s+(.+)$",
+        ]
+
+        for pattern in recall_patterns:
+
+            match = re.match(
+                pattern,
+                command,
+                re.IGNORECASE
             )
 
-        # -------------------------------------------------
-        # Explicit remember command
-        # -------------------------------------------------
+            if match:
 
-        if command.startswith("remember "):
+                key = match.group(1).strip()
 
-            value = text[9:].strip()
+                if not key:
+                    return "What should I look up?"
 
-            if value:
+                # Remove common trailing words
+                key = re.sub(
+                    r"\s+from\s+memory$",
+                    "",
+                    key,
+                    flags=re.IGNORECASE
+                ).strip()
 
-                return (
-                    "What should I remember? "
-                    "You can say: my name is Tarek."
-                )
+                return self.recall(key)
 
-        # -------------------------------------------------
-        # Recall name
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # SHOW ALL MEMORY
+        # -----------------------------------------------------
 
-        if command in [
-            "what is my name",
-            "what's my name",
-            "who am i",
-            "do you remember my name"
-        ]:
-
-            return self.recall("name")
-
-        # -------------------------------------------------
-        # Recall location
-        # -------------------------------------------------
-
-        if command in [
-            "where do i live",
-            "what is my location",
-            "where am i from"
-        ]:
-
-            return self.recall("location")
-
-        # -------------------------------------------------
-        # Recall job
-        # -------------------------------------------------
-
-        if command in [
-            "what is my job",
-            "what do i do",
-            "what is my profession"
-        ]:
-
-            return self.recall("job")
-
-        # -------------------------------------------------
-        # Recall favorite language
-        # -------------------------------------------------
-
-        if command in [
-            "what is my favorite language",
-            "what is my favorite programming language"
-        ]:
-
-            return self.recall(
-                "favorite programming language"
-            )
-
-        # -------------------------------------------------
-        # Recall likes
-        # -------------------------------------------------
-
-        if command in [
-            "what do i like",
-            "what are my likes",
-            "what do you know i like"
-        ]:
-
-            return self.recall("likes")
-
-        # -------------------------------------------------
-        # Recall learning
-        # -------------------------------------------------
-
-        if command in [
-            "what am i learning",
-            "what do i learn",
-            "what am i currently learning"
-        ]:
-
-            return self.recall("learning")
-
-        # -------------------------------------------------
-        # Recall preference
-        # -------------------------------------------------
-
-        if command in [
-            "what do i prefer",
-            "what are my preferences",
-            "what is my preference"
-        ]:
-
-            return self.recall("preference")
-
-        # -------------------------------------------------
-        # Recall favorite editor
-        # -------------------------------------------------
-
-        if command in [
-            "what is my favorite editor",
-            "which editor do i like"
-        ]:
-
-            return self.recall("favorite editor")
-
-        # -------------------------------------------------
-        # Show all memory
-        # -------------------------------------------------
-
-        if command in [
+        show_commands = [
             "what do you remember about me",
+            "what do you remember",
             "show my memory",
             "show memories",
-            "what do you know about me"
-        ]:
+            "show my memories",
+            "list my memories",
+            "what do you know about me",
+        ]
 
+        if command in show_commands:
             return self.show_all()
 
-        # -------------------------------------------------
-        # Forget memory
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # DYNAMIC FORGET
+        #
+        # forget my project folder
+        # forget my work folder
+        # forget my github username
+        # -----------------------------------------------------
 
-        if command.startswith("forget my "):
+        forget_match = re.match(
+            r"^forget\s+(?:my\s+)?(.+)$",
+            command,
+            re.IGNORECASE
+        )
 
-            key = command.replace(
-                "forget my ",
+        if forget_match:
+
+            key = forget_match.group(1).strip()
+
+            key = re.sub(
+                r"\s+from\s+memory$",
                 "",
-                1
+                key,
+                flags=re.IGNORECASE
             ).strip()
 
-            return self.forget(key)
+            if key:
+                return self.forget(key)
 
-        # -------------------------------------------------
-        # Clear all memory
-        # -------------------------------------------------
+        # -----------------------------------------------------
+        # CLEAR ALL MEMORY
+        # -----------------------------------------------------
 
-        if command in [
+        clear_commands = [
             "forget everything",
             "clear memory",
             "clear all memory",
-            "delete all memories"
-        ]:
+            "delete all memories",
+            "clear memories",
+        ]
 
+        if command in clear_commands:
             return self.clear_all()
 
         return None
 
-    # =====================================================
-    # BACKWARD COMPATIBILITY
-    # =====================================================
+    # =========================================================
+    # COMPATIBILITY METHOD
+    # =========================================================
 
     def remember_sentence(self, text):
 
@@ -532,9 +500,210 @@ class MemoryManager:
 
             key, value = result
 
-            return self.remember(
-                key,
-                value
-            )
+            return self.remember(key, value)
 
         return "What should I remember?"
+
+
+# =============================================================
+# MEMORY INTENTS
+# =============================================================
+
+class MemoryIntents:
+
+    def __init__(self, memory):
+        self.memory = memory
+
+    def normalize(self, text):
+
+        text = text.lower().strip()
+
+        words_to_remove = [
+            "please",
+            "pls",
+            "plz",
+            "can you",
+            "could you",
+            "would you",
+            "would you please",
+            "jarvis",
+            "ভাই",
+            "প্লিজ",
+            "দয়া করে",
+        ]
+
+        for word in words_to_remove:
+            text = text.replace(word, " ")
+
+        return " ".join(text.split())
+
+    # ---------------------------------------------------------
+    # REMEMBER
+    # ---------------------------------------------------------
+
+    def remember(self, text):
+
+        text = self.normalize(text)
+
+        prefixes = [
+            "remember my ",
+            "remember that my ",
+            "remember ",
+            "save my ",
+            "save that my ",
+            "save ",
+        ]
+
+        for prefix in prefixes:
+
+            if text.startswith(prefix):
+
+                content = text[len(prefix):].strip()
+
+                # First try "key is value"
+                if " is " in content:
+
+                    key, value = content.split(
+                        " is ",
+                        1
+                    )
+
+                # Also support "="
+                elif "=" in content:
+
+                    key, value = content.split(
+                        "=",
+                        1
+                    )
+
+                else:
+
+                    # Windows path without "is"
+                    path_match = re.match(
+                        r"^(.+?)\s+((?:[a-zA-Z]:\\|[a-zA-Z]:/).+)$",
+                        content
+                    )
+
+                    if path_match:
+
+                        key = path_match.group(1)
+                        value = path_match.group(2)
+
+                    else:
+                        return "What should I remember?"
+
+                key = key.strip()
+                value = value.strip()
+
+                if not key or not value:
+                    return (
+                        "Please provide both "
+                        "the information and its value."
+                    )
+
+                return self.memory.remember(
+                    key,
+                    value
+                )
+
+        return None
+
+    # ---------------------------------------------------------
+    # DYNAMIC RECALL
+    # ---------------------------------------------------------
+
+    def recall(self, text):
+
+        text = self.normalize(text)
+
+        prefixes = [
+            "what is my ",
+            "what's my ",
+            "where is my ",
+            "tell me my ",
+            "do you remember my ",
+            "do you remember ",
+        ]
+
+        for prefix in prefixes:
+
+            if text.startswith(prefix):
+
+                key = text[len(prefix):].strip()
+
+                if not key:
+                    return "What should I look up?"
+
+                value = self.memory.get(key)
+
+                if value is None:
+                    return f"I don't remember your {key}."
+
+                return f"Your {key} is {value}."
+
+        return None
+
+    # ---------------------------------------------------------
+    # DYNAMIC FORGET
+    # ---------------------------------------------------------
+
+    def forget(self, text):
+
+        text = self.normalize(text)
+
+        prefixes = [
+            "forget my ",
+            "forget ",
+            "remove my ",
+            "remove ",
+        ]
+
+        for prefix in prefixes:
+
+            if text.startswith(prefix):
+
+                key = text[len(prefix):].strip()
+
+                key = key.replace(
+                    " from memory",
+                    ""
+                ).strip()
+
+                if not key:
+                    return "What should I forget?"
+
+                return self.memory.forget(key)
+
+        return None
+
+    # ---------------------------------------------------------
+    # SHOW
+    # ---------------------------------------------------------
+
+    def show(self, text):
+
+        text = self.normalize(text)
+
+        commands = [
+            "show my memories",
+            "show memories",
+            "what do you remember",
+            "what do you remember about me",
+            "list my memories",
+        ]
+
+        if text not in commands:
+            return None
+
+        memories = self.memory.all_memory()
+
+        if not memories:
+            return "I don't have anything saved in memory."
+
+        result = "Here is what I remember:\n"
+
+        for key, value in memories.items():
+
+            result += f"- {key}: {value}\n"
+
+        return result.strip()

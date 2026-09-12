@@ -106,6 +106,7 @@ class SystemMonitorIntents:
         ]:
 
             return self.system_monitor.get_battery()
+            
 
         return None
 

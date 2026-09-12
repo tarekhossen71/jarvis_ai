@@ -117,24 +117,6 @@ class CameraIntents:
             "show camera",
             "show live camera",
             "open camera preview",
-        ]
-
-        if text in commands:
-            return self.tools.live_preview()
-
-        return None
-
-    def live_preview(self, command):
-        text = self.normalize(command)
-
-        commands = [
-            "live camera",
-            "camera preview",
-            "live camera preview",
-            "start camera preview",
-            "show camera",
-            "show live camera",
-            "open camera preview",
             "start live camera",
         ]
 
