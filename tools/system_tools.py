@@ -287,7 +287,9 @@ def clear_clipboard():
 
 
 def internet_speed_test():
+
     try:
+
         print("🌐 Testing internet speed... Please wait.")
 
         st = speedtest.Speedtest()
@@ -296,8 +298,6 @@ def internet_speed_test():
 
         download_speed = st.download()
         upload_speed = st.upload()
-
-        ping = st.results.ping
 
         download_mbps = round(
             download_speed / 1_000_000,
@@ -309,17 +309,36 @@ def internet_speed_test():
             2
         )
 
+        ping = float(
+            st.results.ping
+        )
+
+        # speedtest normally returns milliseconds.
+        # Reject obviously invalid values instead of
+        # displaying something like 1,800,000 ms.
+        if ping < 0 or ping > 1000:
+
+            ping_text = "Unavailable"
+
+        else:
+
+            ping_text = f"{round(ping)} ms"
+
         return (
-            f"Internet speed test completed. "
+            "Internet speed test completed. "
             f"Download: {download_mbps} Mbps, "
             f"Upload: {upload_mbps} Mbps, "
-            f"Ping: {round(ping)} ms."
+            f"Ping: {ping_text}."
         )
 
     except Exception as e:
-        print(f"Internet speed test error: {e}")
+
+        print(
+            f"Internet speed test error: {e}"
+        )
 
         return (
-            "Sorry, I could not complete the internet speed test. "
+            "Sorry, I could not complete "
+            "the internet speed test. "
             "Please check your internet connection."
         )

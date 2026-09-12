@@ -27,43 +27,97 @@ class HelpIntents:
 I can help you with these commands:
 
 Browser:
-- Open YouTube
 - Open Google
+- Open YouTube
+- Open GitHub
 - Search Google
 - Search YouTube
+- Check weather
+- Get latest news
 
 Applications:
+- Open applications
+- Close applications
+- Minimize / maximize applications
+- Switch applications
+- Open Chrome
 - Open Notepad
 - Open Calculator
-- Open Chrome
+- Open File Explorer
 - Open VS Code
-- Close applications
-- Minimize all windows
-- Show desktop
 
-Files and folders:
-- Open Desktop
-- Open Downloads
-- Create a folder
-- Create a file
+Windows:
+- Show desktop
+- Minimize all windows
+- Restore windows
+- Show open windows
+- Show active window
+- Switch between windows
+
+Files & Folders:
+- Create folders
+- Create files
+- Open files/folders
+- Read files
+- Write files
+- Append to files
 - Search files
-- Rename a file
-- Move a file
-- Delete a file
-- Show recent files
-- Show file information
+- File information
+- Rename files/folders
+- Move files/folders
+- Delete files/folders
+- Recent files
+- Empty Recycle Bin
+
+System:
+- System status
+- CPU usage
+- RAM usage
+- Disk space
+- Battery status
+- Internet status
+- Internet speed test
+- Volume control
+- Mute / unmute
+- Screenshot
+- Lock PC
+- Shutdown
+- Restart
+
+Clipboard:
+- Read clipboard
+- Copy text
+- Clear clipboard
 
 Memory:
 - Remember information
 - Recall information
-- Show saved memories
-- Forget saved information
+- Forget information
+- Show saved memory
 
-System:
-- Shutdown PC
-- Restart PC
-- Stop listening
-- Bye
+Reminders:
+- Create reminders
+- List reminders
+- Cancel reminders
+
+Camera:
+- Open camera
+- Close camera
+- Camera status
+- Take photos
+- Live camera preview
+
+Communication:
+- Open WhatsApp
+- Send WhatsApp messages
+- Open email
+- Compose email
+
+Plugins:
+- List plugins
+- Enable / disable plugins
+- Reload plugins
+- Run plugins
 
 You can also ask me normal questions using Gemini.
 """.strip()

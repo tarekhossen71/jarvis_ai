@@ -171,14 +171,16 @@ class CommunicationIntents:
         return None
 
     def whatsapp_message(self, command):
+
         text = self.normalize(command)
 
         patterns = [
-            r"send whatsapp message to (.+)",
-            r"send whatsapp to (.+)",
-            r"whatsapp message to (.+)",
-            r"message on whatsapp to (.+)",
-            r"message whatsapp to (.+)",
+            r"send whatsapp message to (.+?) saying (.+)",
+            r"send whatsapp to (.+?) saying (.+)",
+            r"whatsapp message to (.+?) saying (.+)",
+            r"message on whatsapp to (.+?) saying (.+)",
+            r"message whatsapp to (.+?) saying (.+)",
+            r"send message to (.+?) saying (.+)",
         ]
 
         for pattern in patterns:
@@ -189,28 +191,30 @@ class CommunicationIntents:
                 re.IGNORECASE
             )
 
-            if match:
+            if not match:
+                continue
 
-                phone = match.group(1).strip()
+            phone = match.group(1).strip()
+            message = match.group(2).strip()
 
-                # Extract only phone-like characters
-                phone_clean = re.sub(
-                    r"[^\d+]",
-                    "",
-                    phone
-                )
+            phone_clean = re.sub(
+                r"[^\d+]",
+                "",
+                phone
+            )
 
-                if not phone_clean:
-                    return "Please provide a valid phone number."
+            if not phone_clean:
+                return "Please provide a valid phone number."
 
-                self.whatsapp_data = {
-                    "phone": phone_clean,
-                    "message": "",
-                }
+            self.whatsapp_data = {
+                "phone": phone_clean,
+                "message": message,
+            }
 
-                self.whatsapp_state = "message"
-
-                return "What message should I send?"
+            return self.confirmation.ask(
+                f"send WhatsApp message to {phone_clean}",
+                lambda: self.send_confirmed_whatsapp()
+            )
 
         return None
 

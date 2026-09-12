@@ -165,16 +165,36 @@ class FileIntents:
                 re.IGNORECASE
             )
 
-            if match:
+            if not match:
+                continue
 
-                search_name = match.group(1).strip()
+            search_name = match.group(1).strip()
 
-                if not search_name:
-                    return "Please provide a file or folder name."
+            if not search_name:
+                return "Please provide a file or folder name."
 
-                return self.tools.search_files(
+            # First try dynamic resolver.
+            if self.resolver:
+
+                resolved = self.resolver(
                     search_name
                 )
+
+                if resolved:
+
+                    import os
+
+                    if os.path.exists(resolved):
+
+                        return (
+                            f"I found {search_name}: "
+                            f"{os.path.normpath(resolved)}"
+                        )
+
+            # Fallback to normal search
+            return self.tools.search_files(
+                search_name
+            )
 
         return None
 
@@ -201,16 +221,34 @@ class FileIntents:
                 re.IGNORECASE
             )
 
-            if match:
+            if not match:
+                continue
 
-                file_name = match.group(1).strip()
+            file_name = match.group(1).strip()
 
-                if not file_name:
-                    return "Please provide a file name."
+            if not file_name:
+                return "Please provide a file name."
 
-                return self.tools.get_file_info(
+            # Dynamic project/path resolution
+            if self.resolver:
+
+                resolved = self.resolver(
                     file_name
                 )
+
+                if resolved:
+
+                    import os
+
+                    if os.path.isfile(resolved):
+
+                        return self.tools.get_file_info(
+                            resolved
+                        )
+
+            return self.tools.get_file_info(
+                file_name
+            )
 
         return None
 
@@ -289,6 +327,28 @@ class FileIntents:
         if not old_name or not new_name:
             return "Please provide both old and new names."
 
+        resolved = None
+
+        if self.resolver:
+            resolved = self.resolver(
+                old_name
+            )
+
+        if resolved:
+
+            import os
+
+            if os.path.exists(resolved):
+
+                return self.confirmation.ask(
+                    f"rename {os.path.basename(resolved)} to {new_name}",
+                    lambda path=resolved, new=new_name:
+                        self.tools.rename_item(
+                            path,
+                            new
+                        )
+                )
+
         return self.confirmation.ask(
             f"rename {old_name} to {new_name}",
             lambda: self.tools.rename_item(
@@ -360,44 +420,29 @@ class FileIntents:
             if not item_name:
                 return "What should I delete?"
 
-            # ==========================================
-            # Resolve the real filesystem path first
-            # ==========================================
-
-            resolved_path = None
+            resolved = None
 
             if self.resolver:
-                try:
-                    resolved_path = self.resolver(item_name)
-                except Exception:
-                    resolved_path = None
+                resolved = self.resolver(
+                    item_name
+                )
 
-            # ==========================================
-            # If resolver found the item
-            # ==========================================
+            if resolved:
 
-            if resolved_path:
+                import os
 
-                resolved_path = str(resolved_path).strip()
-
-                if resolved_path and self._path_exists(resolved_path):
+                if os.path.exists(resolved):
 
                     return self.confirmation.ask(
-                        f"delete {resolved_path}",
-                        lambda path=resolved_path: self.tools.delete_item(
-                            path
-                        )
+                        f"delete {os.path.normpath(resolved)}",
+                        lambda path=resolved:
+                            self.tools.delete_item(path)
                     )
-
-            # ==========================================
-            # Fallback to old behavior
-            # ==========================================
 
             return self.confirmation.ask(
                 f"delete {item_name}",
-                lambda name=item_name: self.tools.delete_item(
-                    name
-                )
+                lambda name=item_name:
+                    self.tools.delete_item(name)
             )
 
         return None
@@ -588,7 +633,7 @@ class FileIntents:
             if not file_name:
                 return "Please provide a file name."
 
-            return self.confirmation.request(
+            return self.confirmation.ask(
                 f"Overwrite {file_name} with new content?",
                 lambda: self.tools.write_to_file(
                     file_name,

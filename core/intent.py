@@ -857,6 +857,105 @@ class IntentManager:
             return None
 
         # =====================================================
+        # NATURAL LANGUAGE SYSTEM ROUTING
+        # =====================================================
+
+        # Battery
+        if re.search(
+            r"\b(?:what(?:'s| is)?\s+)?(?:my\s+)?battery"
+            r"(?:\s+(?:level|percentage|status))?\b",
+            command,
+            re.IGNORECASE
+        ):
+            return self.system_intents.battery(
+                "battery"
+            )
+
+
+        # CPU
+        if re.search(
+            r"\b(?:what(?:'s| is)?\s+)?(?:my\s+)?"
+            r"(?:cpu|processor)"
+            r"(?:\s+(?:usage|status))?\b",
+            command,
+            re.IGNORECASE
+        ):
+            return self.system_intents.cpu(
+                "cpu usage"
+            )
+
+
+        # RAM
+        if re.search(
+            r"\b(?:what(?:'s| is)?\s+)?(?:my\s+)?"
+            r"(?:ram|memory)"
+            r"(?:\s+(?:usage|status))?\b",
+            command,
+            re.IGNORECASE
+        ):
+            return self.system_intents.ram(
+                "ram usage"
+            )
+
+
+        # Disk
+        if re.search(
+            r"\b(?:disk|storage)"
+            r"(?:\s+(?:space|usage|status))?\b",
+            command,
+            re.IGNORECASE
+        ):
+            return self.system_intents.disk(
+                "disk space"
+            )
+
+
+        # =====================================================
+        # SET VOLUME
+        # =====================================================
+
+        volume_match = re.search(
+            r"\b(?:set|change)"
+            r"\s+(?:the\s+)?volume"
+            r"(?:\s+level)?"
+            r"\s*(?:to|at|=)?"
+            r"\s*(\d{1,3})"
+            r"\s*%?\b",
+            command,
+            re.IGNORECASE
+        )
+
+        if volume_match:
+
+            level = int(
+                volume_match.group(1)
+            )
+
+            level = max(
+                0,
+                min(100, level)
+            )
+
+            return self.system_intents.volume(
+                f"set volume {level}"
+            )
+
+
+        # =====================================================
+        # MINIMIZE WINDOW
+        # =====================================================
+
+        if command in [
+            "minimize window",
+            "minimize windows",
+            "minimize all windows",
+        ]:
+
+            return self.app_intents.execute(
+                "minimize all windows"
+            )
+
+        # =====================================================
         # Direct website detection
         # =====================================================
 
@@ -1161,6 +1260,8 @@ class IntentManager:
 
             "camera": "open_camera",
             "start_camera": "open_camera",
+            "open camera": "open_camera",
+            "camera open": "open_camera",
 
             "photo": "take_photo",
             "capture_photo": "take_photo",
@@ -1788,7 +1889,7 @@ class IntentManager:
         # FILES
         # =====================================================
 
-                # =====================================================
+        # =====================================================
         # FILES - DYNAMIC AI EXECUTION
         # =====================================================
 

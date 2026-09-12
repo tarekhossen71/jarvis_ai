@@ -11,14 +11,31 @@ _camera_running = False
 
 
 def open_camera():
+
     try:
-        subprocess.Popen(
-            ["cmd", "/c", "start", "", "microsoft.windows.camera:"],
-            shell=False
+
+        os.startfile(
+            "microsoft.windows.camera:"
         )
+
         return "Camera opened successfully."
-    except Exception as e:
-        return f"Failed to open camera: {e}"
+
+    except Exception:
+
+        try:
+
+            subprocess.Popen([
+                "explorer.exe",
+                "microsoft.windows.camera:"
+            ])
+
+            return "Camera opened successfully."
+
+        except Exception as e:
+
+            return (
+                f"Failed to open camera: {e}"
+            )
 
 
 def close_camera():
